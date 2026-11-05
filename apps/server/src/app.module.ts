@@ -2,8 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
+import { ZentaoSnakeNamingStrategy } from './database/naming.strategy.js';
 import { RedisModule } from './common/redis/redis.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { SystemModule } from './modules/system/system.module.js';
 
 @Module({
   imports: [
@@ -13,7 +16,7 @@ import { HealthModule } from './modules/health/health.module.js';
       cache: true,
       envFilePath: [join(process.cwd(), '.env')],
     }),
-    // MySQL8（docker-compose 容器）；实体随 P1 起经 autoLoadEntities 注册
+    // MySQL8（docker-compose 容器）；实体随模块 forFeature 注册（autoLoadEntities）
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -24,8 +27,9 @@ import { HealthModule } from './modules/health/health.module.js';
         password: config.get<string>('DB_PASSWORD', ''),
         database: config.get<string>('DB_DATABASE', 'zentao_nest'),
         charset: 'utf8mb4',
+        namingStrategy: new ZentaoSnakeNamingStrategy(),
         autoLoadEntities: true,
-        // 生产强制 false（docs/01 §13）；开发默认亦为 false，实体演进一律走 migration
+        // 生产强制 false（docs/01 §13）；实体演进一律走 migration
         synchronize: config.get<string>('DB_SYNCHRONIZE', 'false') === 'true',
         retryAttempts: 10,
         retryDelay: 3000,
@@ -33,6 +37,8 @@ import { HealthModule } from './modules/health/health.module.js';
     }),
     RedisModule,
     HealthModule,
+    AuthModule,
+    SystemModule,
   ],
 })
 export class AppModule {}

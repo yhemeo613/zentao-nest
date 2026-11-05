@@ -7,5 +7,6 @@
 
 export * from './error-codes.js';
 export * from './dto/http.js';
+export * from './permissions.js';
 
 export const SHARED_VERSION = '0.1.0';

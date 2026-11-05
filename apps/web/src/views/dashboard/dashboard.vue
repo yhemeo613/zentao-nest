@@ -1,9 +1,29 @@
 <script setup lang="ts">
-// F0 占位：我的概览（数据源接口随 P1 /my/* 交付，docs/03 §4.17）
+import { useAuthStore } from '../../stores/auth.js';
+
+// F1 最小版：当前用户 + 权限点计数（系统管理页随 F1 后续交付）
+const auth = useAuthStore();
 </script>
 
 <template>
-  <div class="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-    我的概览将在 P1（认证）+ P5（我的地盘）交付后展示指派给我的任务/待办聚合。
+  <div class="space-y-4">
+    <h1 class="text-lg font-semibold">我的概览</h1>
+    <div class="grid max-w-lg grid-cols-3 gap-3 text-center text-sm">
+      <div class="rounded-lg border border-border bg-card p-4">
+        <div class="mb-1 text-muted-foreground">当前用户</div>
+        <div>{{ auth.user?.realname ?? auth.user?.account ?? '-' }}</div>
+      </div>
+      <div class="rounded-lg border border-border bg-card p-4">
+        <div class="mb-1 text-muted-foreground">账号</div>
+        <div>{{ auth.user?.account ?? '-' }}</div>
+      </div>
+      <div class="rounded-lg border border-border bg-card p-4">
+        <div class="mb-1 text-muted-foreground">权限点</div>
+        <div>{{ auth.permissions.length }}</div>
+      </div>
+    </div>
+    <p class="text-xs text-muted-foreground">
+      系统管理（用户/角色/部门/ACL）页面随 F1 交付；待办/任务聚合随 P5 我的地盘交付。
+    </p>
   </div>
 </template>
