@@ -15,8 +15,11 @@ export class ApiError extends Error {
 }
 
 type UnauthorizedHandler = () => void;
+type TokenProvider = () => string | null;
 
 let unauthorizedHandler: UnauthorizedHandler | null = null;
+/** token 提供者：由 auth store 注入（单一事实源，避免存储键位漂移） */
+let tokenProvider: TokenProvider = () => null;
 /** 刷新队列（P1 /auth/refresh 落地后启用单飞刷新+重放，docs/05 §4） */
 let refreshing: Promise<boolean> | null = null;
 
@@ -25,13 +28,18 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler): void {
   unauthorizedHandler = handler;
 }
 
+/** 由 auth store 注入：动态取当前 accessToken */
+export function setTokenProvider(provider: TokenProvider): void {
+  tokenProvider = provider;
+}
+
 export const http: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE ?? '/api/v1',
   timeout: 15_000,
 });
 
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem('zentao.access_token');
+  const token = tokenProvider();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   config.headers['X-Trace-Id'] = crypto.randomUUID();
   return config;

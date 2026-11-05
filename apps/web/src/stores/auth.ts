@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { authApi, type CurrentUserVo, type LoginParams } from '../api/auth.js';
+import { setTokenProvider } from '../lib/http.js';
 
 const STORAGE_KEY = 'zentao.auth';
 
@@ -89,3 +90,8 @@ export const useAuthStore = defineStore('auth', () => {
     persist,
   };
 });
+
+/** pinia 安装后调用：把 accessToken 提供给 http 层（单一事实源，修复键位漂移） */
+export function installAuthBridge(): void {
+  setTokenProvider(() => useAuthStore().accessToken);
+}
