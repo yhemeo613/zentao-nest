@@ -47,8 +47,29 @@ async function bootstrap(): Promise<void> {
       app,
       new DocumentBuilder()
         .setTitle('zentao-nest API')
-        .setDescription('禅道复刻系统后端接口文档')
+        .setDescription(
+          [
+            '禅道开源版（ZenTao 22.7）复刻系统后端接口文档。',
+            '',
+            '统一响应体：{ code, message, data, traceId, timestamp }（code=0 成功）；错误码契约见 docs/03 §2。',
+            '认证：/auth/login 获取双 token → 右上角 Authorize 填入 accessToken。',
+            '权限：受保护端点自动校验 module.action 权限点（无权限返回 2003）。',
+          ].join('\n'),
+        )
         .setVersion('0.1.0')
+        .setContact(
+          'zentao-nest',
+          'https://github.com/yhemeo613/zentao-nest',
+          'dzyperson@163.com',
+        )
+        .setLicense(
+          'MIT',
+          'https://github.com/yhemeo613/zentao-nest/blob/main/LICENSE',
+        )
+        .setExternalDoc(
+          '设计文档（仓库 docs/）',
+          'https://github.com/yhemeo613/zentao-nest/tree/main/docs',
+        )
         .addBearerAuth()
         .build(),
     );
