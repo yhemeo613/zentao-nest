@@ -10,6 +10,7 @@ import { ZtPlanStory } from '../plan/entities/zt-plan-story.entity.js';
 import { ZtProjectStory } from '../project/entities/zt-project-story.entity.js';
 import { ZtReleaseRelated } from '../release/entities/zt-release-related.entity.js';
 import { ZtRelease } from '../release/entities/zt-release.entity.js';
+import { ActivityService } from '../oa/activity.service.js';
 import {
   AssignStoryDto,
   ChangeStoryDto,
@@ -41,6 +42,7 @@ export class StoryService {
     private readonly releaseRelatedRepo: Repository<ZtReleaseRelated>,
     @InjectRepository(ZtRelease)
     private readonly releaseRepo: Repository<ZtRelease>,
+    private readonly activity: ActivityService,
   ) {}
 
   async create(dto: CreateStoryDto, operatorId: string): Promise<ZtStory> {
@@ -105,6 +107,24 @@ export class StoryService {
       );
     }
     // Bug 转需求回写（docs/02 §4.5 closeBugWhenToStory 由 bug 模块联动；此处仅挂 fromBugId）
+    await this.activity.log({
+      objectType: 'story',
+      objectId: created.id,
+      actor: operatorId,
+      action: 'opened',
+      extra: initialStatus,
+    });
+    if (initialStatus === StoryStatus.Reviewing && dto.reviewerIds?.length) {
+      for (const rid of dto.reviewerIds) {
+        await this.activity.notify({
+          toUserId: rid,
+          objectType: 'story',
+          objectId: created.id,
+          action: 'submitreview',
+          subject: `需求【${created.title}】待评审`,
+        });
+      }
+    }
     return created;
   }
 
@@ -208,7 +228,7 @@ export class StoryService {
         : results.includes('revert')
           ? 'revert'
           : 'reject';
-    return this.applyReviewResult(story, final, dto);
+    return this.applyReviewResult(story, final, dto, operatorId);
   }
 
   /** 四落点（docs/02 §4.2 setStatusByReviewResult，model.php:4831-4872） */
@@ -216,6 +236,7 @@ export class StoryService {
     story: ZtStory,
     final: string,
     dto: ReviewStoryDto,
+    operatorId: string,
   ): Promise<ZtStory> {
     switch (final) {
       case 'pass':
@@ -261,8 +282,24 @@ export class StoryService {
     story.finalResult = final;
     story.reviewedAt = new Date();
     const saved = await this.storyRepo.save(story);
+    await this.activity.log({
+      objectType: 'story',
+      objectId: saved.id,
+      actor: operatorId,
+      action: 'reviewed',
+      extra: final,
+    });
+    if (saved.assignedTo) {
+      await this.activity.notify({
+        toUserId: saved.assignedTo,
+        objectType: 'story',
+        objectId: saved.id,
+        action: 'reviewed',
+        subject: `需求【${saved.title}】评审${final === 'pass' ? '通过' : final}`,
+      });
+    }
     if (final !== 'reject') await this.setStage(saved.id, 'reviewed');
-    return saved;
+    return this.mustFind(saved.id);
   }
 
   /** 变更（docs/02 §4.3）：title/spec/verify 任一变化 → version+1 + 新 spec + 评审行重置 */
@@ -410,6 +447,13 @@ export class StoryService {
     story.closedAt = new Date();
     story.duplicateStoryId = dto.duplicateStoryId ?? 0;
     await this.storyRepo.save(story);
+    await this.activity.log({
+      objectType: 'story',
+      objectId: id,
+      actor: operatorId,
+      action: 'closed',
+      extra: dto.closedReason,
+    });
     await this.setStage(id, 'manual');
     return this.mustFind(id); // 返回 setStage 后最新实体（stage 已更新）
   }
@@ -426,6 +470,12 @@ export class StoryService {
     story.status = StoryStatus.Active;
     story.activatedDate = new Date();
     const saved = await this.storyRepo.save(story);
+    await this.activity.log({
+      objectType: 'story',
+      objectId: id,
+      actor: operatorId,
+      action: 'activated',
+    });
     await this.setStage(id, 'manual');
     return saved;
   }

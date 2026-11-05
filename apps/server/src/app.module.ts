@@ -21,6 +21,8 @@ import { BugModule } from './modules/bug/bug.module.js';
 import { CaseModule } from './modules/case-module/case.module.js';
 import { TestTaskModule } from './modules/testtask/testtask.module.js';
 import { ProjectStoryModule } from './modules/projectstory/projectstory.module.js';
+import { DocModule } from './modules/doc/doc.module.js';
+import { OaModule } from './modules/oa/oa.module.js';
 
 @Module({
   imports: [
@@ -67,6 +69,8 @@ import { ProjectStoryModule } from './modules/projectstory/projectstory.module.j
     CaseModule,
     TestTaskModule,
     ProjectStoryModule,
+    DocModule,
+    OaModule,
   ],
 })
 export class AppModule {}

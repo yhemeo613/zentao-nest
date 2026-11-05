@@ -7,6 +7,7 @@ import { ZtBug } from './entities/zt-bug.entity.js';
 import { ZtStory } from '../story/entities/zt-story.entity.js';
 import { ZtStorySpec } from '../story/entities/zt-story-spec.entity.js';
 import { StoryService } from '../story/story.service.js';
+import { ActivityService } from '../oa/activity.service.js';
 import { StoryStatus } from '@zentao/shared';
 import {
   ActivateBugDto,
@@ -24,10 +25,11 @@ export class BugService {
     @InjectRepository(ZtStorySpec)
     private readonly specRepo: Repository<ZtStorySpec>,
     private readonly storyService: StoryService,
+    private readonly activity: ActivityService,
   ) {}
 
   async create(dto: CreateBugDto, operatorId: string): Promise<ZtBug> {
-    return this.bugRepo.save(
+    const created = await this.bugRepo.save(
       this.bugRepo.create({
         productId: Number(dto.productId),
         moduleId: dto.moduleId ?? 0,
@@ -53,6 +55,24 @@ export class BugService {
         createdBy: operatorId,
       }),
     );
+    // 指派通知（docs/02 §9.2 bug: assigned）
+    if (created.assignedTo) {
+      await this.activity.log({
+        objectType: 'bug',
+        objectId: created.id,
+        actor: operatorId,
+        action: 'assigned',
+        extra: created.assignedTo,
+      });
+      await this.activity.notify({
+        toUserId: created.assignedTo,
+        objectType: 'bug',
+        objectId: created.id,
+        action: 'assigned',
+        subject: 'Bug【' + created.title + '】指派给你',
+      });
+    }
+    return created;
   }
 
   async list(query: {
@@ -130,7 +150,23 @@ export class BugService {
     bug.duplicateBugId = dto.duplicateBugId ?? 0;
     bug.assignedTo = dto.assignedTo ?? bug.openedBy; // 回开单人（docs/02 §7.1 zen.php:708-709）
     bug.assignedAt = new Date();
-    return this.bugRepo.save(bug);
+    const saved = await this.bugRepo.save(bug);
+    await this.activity.log({
+      objectType: 'bug',
+      objectId: saved.id,
+      actor: operatorId,
+      action: 'resolved',
+      extra: dto.resolution,
+    });
+    if (saved.assignedTo)
+      await this.activity.notify({
+        toUserId: saved.assignedTo,
+        objectType: 'bug',
+        objectId: saved.id,
+        action: 'resolved',
+        subject: `Bug【${saved.title}】已解决，待验证`,
+      });
+    return saved;
   }
 
   /** activate（docs/02 §7.1）：resolved/closed → active；activatedCount+1；指派默认=原解决人；清解决字段 */

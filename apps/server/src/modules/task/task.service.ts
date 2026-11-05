@@ -12,6 +12,7 @@ import { ZtTask } from './entities/zt-task.entity.js';
 import { ZtEffort } from './entities/zt-effort.entity.js';
 import { ZtStory } from '../story/entities/zt-story.entity.js';
 import { StoryService } from '../story/story.service.js';
+import { ActivityService } from '../oa/activity.service.js';
 import {
   ActivateTaskDto,
   AssignTaskDto,
@@ -35,6 +36,7 @@ export class TaskService {
     private readonly effortRepo: Repository<ZtEffort>,
     @InjectRepository(ZtStory) private readonly storyRepo: Repository<ZtStory>,
     private readonly storyService: StoryService,
+    private readonly activity: ActivityService,
   ) {}
 
   async create(dto: CreateTaskDto, operatorId: string): Promise<ZtTask> {
@@ -492,7 +494,37 @@ export class TaskService {
     if (task.parentId > 0) await this.aggregateParent(task.parentId);
     if (task.storyId > 0)
       await this.refreshStoryStage(String(task.storyId), trigger);
-    void operatorId;
+    // P5：审计日志 + 指派通知（动作矩阵 docs/02 §9.2 task 分支）
+    const actionName =
+      trigger === 'startTask'
+        ? 'started'
+        : trigger === 'finishTask'
+          ? 'finished'
+          : trigger === 'cancelTask'
+            ? 'canceled'
+            : trigger === 'closeTask'
+              ? 'closed'
+              : trigger === 'activateTask'
+                ? 'activated'
+                : 'recordEffort';
+    await this.activity.log({
+      objectType: 'task',
+      objectId: task.id,
+      actor: operatorId,
+      action: actionName,
+      projectId: task.projectId,
+      executionId: task.executionId,
+    });
+    if (task.assignedTo && task.assignedTo !== operatorId) {
+      await this.activity.notify({
+        toUserId: task.assignedTo,
+        objectType: 'task',
+        objectId: task.id,
+        action: 'assigned',
+        subject: '任务【' + task.name + '】状态更新：' + task.status,
+        data: { status: task.status, by: operatorId },
+      });
+    }
   }
 
   /** story stage 任务维度推进（docs/02 §4.4 setStageFromTasks：design/devel/test 三桶） */

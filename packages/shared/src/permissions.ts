@@ -216,6 +216,36 @@ export const PERMS = {
     edit: 'effort.edit',
     delete: 'effort.delete',
   },
+
+  /** 文档（P5，docs/03 §4.15） */
+  doc: {
+    browseSpace: 'doc.browseSpace',
+    manageSpace: 'doc.manageSpace',
+    browseLib: 'doc.browseLib',
+    manageLib: 'doc.manageLib',
+    browse: 'doc.browse',
+    create: 'doc.create',
+    view: 'doc.view',
+    edit: 'doc.edit',
+    delete: 'doc.delete',
+  },
+  /** 待办（P5，docs/03 §4.16） */
+  todo: {
+    browse: 'todo.browse',
+    create: 'todo.create',
+    view: 'todo.view',
+    edit: 'todo.edit',
+    delete: 'todo.delete',
+    start: 'todo.start',
+    finish: 'todo.finish',
+    activate: 'todo.activate',
+    close: 'todo.close',
+    assignTo: 'todo.assignTo',
+    batchFinish: 'todo.batchFinish',
+    batchClose: 'todo.batchClose',
+  },
+  /** 配置（P5，docs/03 §4.25） */
+  config: { browse: 'config.browse', manage: 'config.manage' },
 } as const;
 
 type PermValues<T> = T extends string ? T : PermValues<T[keyof T]>;
