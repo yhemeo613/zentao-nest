@@ -409,9 +409,9 @@ export class StoryService {
     story.closedBy = operatorId;
     story.closedAt = new Date();
     story.duplicateStoryId = dto.duplicateStoryId ?? 0;
-    const saved = await this.storyRepo.save(story);
+    await this.storyRepo.save(story);
     await this.setStage(id, 'manual');
-    return saved;
+    return this.mustFind(id); // 返回 setStage 后最新实体（stage 已更新）
   }
 
   /** 激活（docs/02 §4.2 activate）：closed → active（简化恢复；extra 恢复随 P5） */
@@ -562,9 +562,17 @@ export class StoryService {
     if (story.stagedBy) return;
     // 规则表（docs/02 §4.4，逐条覆盖后面的优先）
     let stage = story.stage;
-    if (stats.design === 'doing' && stats.devel === 'wait') stage = 'designing';
+    if (
+      stats.design === 'doing' &&
+      (stats.devel === 'wait' || stats.devel === 'none')
+    )
+      stage = 'designing';
     if (stats.design === 'done' && stats.devel === 'wait') stage = 'designed';
-    if (stats.devel === 'doing' && stats.test === 'wait') stage = 'developing';
+    if (
+      stats.devel === 'doing' &&
+      (stats.test === 'wait' || stats.test === 'none')
+    )
+      stage = 'developing';
     if (
       stats.devel === 'done' &&
       (stats.test === 'wait' || stats.test === 'none')

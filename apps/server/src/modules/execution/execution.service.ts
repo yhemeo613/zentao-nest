@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ErrorCodes } from '@zentao/shared';
 import { BusinessException } from '../../common/exceptions/business.exception.js';
 import { DataScopeService } from '../data-scope/data-scope.service.js';
@@ -166,7 +166,11 @@ export class ExecutionService {
     await this.dataScope.assertCanView(operatorId, 'execution', id);
     await this.mustFind(id);
     const children = await this.executionRepo.count({
-      where: { parentId: Number(id), deleted: 0 },
+      where: {
+        parentId: Number(id),
+        grade: In([2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        deleted: 0,
+      },
     });
     if (children > 0) {
       throw new BusinessException(
@@ -206,7 +210,11 @@ export class ExecutionService {
     }
     // 级联：子阶段须全部 suspended/closed（docs/02 §3.5 changeStatus2Inactive）
     const children = await this.executionRepo.find({
-      where: { parentId: Number(id), deleted: 0 },
+      where: {
+        parentId: Number(id),
+        grade: In([2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        deleted: 0,
+      },
     });
     const bad = children.filter(
       (c) => c.status !== 'suspended' && c.status !== 'closed',
@@ -251,7 +259,11 @@ export class ExecutionService {
       );
     // 级联：子阶段须全部 closed（docs/02 §3.5 changeStatus2Inactive:783-815）
     const children = await this.executionRepo.find({
-      where: { parentId: Number(id), deleted: 0 },
+      where: {
+        parentId: Number(id),
+        grade: In([2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        deleted: 0,
+      },
     });
     const bad = children.filter((c) => c.status !== 'closed');
     if (bad.length > 0) {

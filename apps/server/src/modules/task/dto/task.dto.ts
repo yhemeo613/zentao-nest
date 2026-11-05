@@ -128,6 +128,17 @@ export class FinishTaskDto {
   @IsDateString()
   realStarted: string;
 
+  @ApiPropertyOptional({
+    description: '完成后剩余工时（禅道语义固定为 0；非 0 报 3007）',
+    example: 0,
+    minimum: 0,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  left?: number;
+
   @ApiProperty({
     description: '完成日期（≥realStarted）',
     example: '2026-11-20',

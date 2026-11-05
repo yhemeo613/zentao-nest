@@ -20,6 +20,7 @@ import { TaskModule } from './modules/task/task.module.js';
 import { BugModule } from './modules/bug/bug.module.js';
 import { CaseModule } from './modules/case-module/case.module.js';
 import { TestTaskModule } from './modules/testtask/testtask.module.js';
+import { ProjectStoryModule } from './modules/projectstory/projectstory.module.js';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { TestTaskModule } from './modules/testtask/testtask.module.js';
     BugModule,
     CaseModule,
     TestTaskModule,
+    ProjectStoryModule,
   ],
 })
 export class AppModule {}
