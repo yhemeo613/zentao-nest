@@ -8,5 +8,8 @@
 export * from './error-codes.js';
 export * from './dto/http.js';
 export * from './permissions.js';
+export * from './enums/story.enum.js';
+export * from './enums/task.enum.js';
+export * from './enums/quality.enum.js';
 
 export const SHARED_VERSION = '0.1.0';

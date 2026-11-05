@@ -12,6 +12,14 @@ import { ProductModule } from './modules/product/product.module.js';
 import { ProjectModule } from './modules/project/project.module.js';
 import { ExecutionModule } from './modules/execution/execution.module.js';
 import { TeamModule } from './modules/team/team.module.js';
+import { StoryModule } from './modules/story/story.module.js';
+import { PlanModule } from './modules/plan/plan.module.js';
+import { BuildModule } from './modules/build/build.module.js';
+import { ReleaseModule } from './modules/release/release.module.js';
+import { TaskModule } from './modules/task/task.module.js';
+import { BugModule } from './modules/bug/bug.module.js';
+import { CaseModule } from './modules/case-module/case.module.js';
+import { TestTaskModule } from './modules/testtask/testtask.module.js';
 
 @Module({
   imports: [
@@ -49,6 +57,14 @@ import { TeamModule } from './modules/team/team.module.js';
     ProjectModule,
     ExecutionModule,
     TeamModule,
+    StoryModule,
+    PlanModule,
+    BuildModule,
+    ReleaseModule,
+    TaskModule,
+    BugModule,
+    CaseModule,
+    TestTaskModule,
   ],
 })
 export class AppModule {}
