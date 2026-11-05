@@ -7,6 +7,11 @@ import { RedisModule } from './common/redis/redis.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { SystemModule } from './modules/system/system.module.js';
+import { ProgramModule } from './modules/program/program.module.js';
+import { ProductModule } from './modules/product/product.module.js';
+import { ProjectModule } from './modules/project/project.module.js';
+import { ExecutionModule } from './modules/execution/execution.module.js';
+import { TeamModule } from './modules/team/team.module.js';
 
 @Module({
   imports: [
@@ -39,6 +44,11 @@ import { SystemModule } from './modules/system/system.module.js';
     HealthModule,
     AuthModule,
     SystemModule,
+    ProgramModule,
+    ProductModule,
+    ProjectModule,
+    ExecutionModule,
+    TeamModule,
   ],
 })
 export class AppModule {}
