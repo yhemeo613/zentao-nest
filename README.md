@@ -9,25 +9,27 @@
 ```text
 zentao-nest/
 ├── apps/
-│   ├── server/               # NestJS 后端（P0 待初始化）
-│   └── web/                  # Vue3 + Vite 前端（F0 待初始化）
+│   ├── server/               # NestJS 11 后端（P0 已初始化：health/统一响应/异常/校验/Swagger）
+│   └── web/                  # Vue3 + Vite 前端（F0 已初始化：路由/Pinia/vue-query/http 基础/Tailwind）
 ├── packages/
-│   └── shared/               # 双端同源契约包（枚举/权限点/Socket 契约/错误码/DTO 类型）
-├── docs/                     # 设计文档体系 v2.0（7 份，README 为导航）
+│   └── shared/               # 双端同源契约包（P0 已落：错误码注册表 + HTTP 类型）
+├── docs/                     # 设计文档体系（README 为导航；06 为代码规范）
 ├── reference/                # 禅道 22.7 源码参照（gitignore，仅本地）
 ├── pnpm-workspace.yaml
 ├── turbo.json
-└── docker-compose.yml        # P7 落位（mysql/redis/server/web 四容器）
+└── docker-compose.yml        # MySQL8 + Redis7（server/web 容器 P7 追加）
 ```
 
-## 快速开始（当前为骨架阶段）
+## 快速开始
 
 ```bash
-pnpm install        # 安装 workspace 依赖
-pnpm build          # turbo build（当前仅 packages/shared）
+pnpm install                # 安装 workspace 依赖
+docker compose up -d        # 启动 MySQL8 + Redis7（凭据见 .env.example → .env）
+pnpm build                  # turbo build（shared → server/web）
+pnpm dev                    # 并行启动 server(:3000) + web(:5173)
 ```
 
-> `apps/server`、`apps/web` 分别在后端 P0、前端 F0 里程碑初始化（docs/01-总体设计 §11、docs/05-前端架构 §10）。
+验证：浏览器打开 http://localhost:5173 → 「系统状态」页应显示 MySQL/Redis 正常；后端健康检查 `GET :3000/api/v1/health`；Swagger `:3000/api/docs`。
 
 ## 开发约定
 
