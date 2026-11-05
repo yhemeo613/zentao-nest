@@ -31,6 +31,7 @@ pnpm build          # turbo build（当前仅 packages/shared）
 
 ## 开发约定
 
+- **AI 编码代理必读**：[AGENTS.md](./AGENTS.md) —— 边界守则（技术栈/目录/契约/业务逻辑/接口五重边界 + 提交前自检清单），**一切实现必须能指到 docs/ 的具体规格**；
 - **契约同源**：双端共享的类型/常量一律放 `packages/shared`，规则见 docs/03-接口与契约 §12；
-- **文档先行**：业务规格冲突以 docs/02 为准，接口以 docs/03 为准，数据以 docs/04 为准；
-- **提交规范**：Conventional Commits（`feat: / fix: / docs: / chore: / refactor:`），流水线接入 commitlint（F0/P0 落地）。
+- **文档先行**：业务规格冲突以 docs/02 为准，接口以 docs/03 为准，数据以 docs/04 为准，编码规范以 docs/06 为准；
+- **提交规范**：`type: 中文描述`（Conventional Commits），husky 强制 prettier + commitlint，禁止绕过钩子。
