@@ -1,24 +1,44 @@
 @import 'tailwindcss';
 
-/* shadcn-vue 基础主题变量（Tailwind v4；F1 由 shadcn-vue CLI 组件化补全，docs/05 §3） */
+/*
+ * 设计系统：「精密仪表」（frontend-design skill 两段式产出）
+ *
+ * 设计方案（先审后建，见 docs/10 与本注释）：
+ * - 主题：工程精密感。受众是研发团队（PM/Dev/QA），工具属性 = 高密度、可扫读、状态一目了然。
+ * - Color（4-6 锚点）：
+ *   --bg #F6F7F9 冷灰底（非奶油底）｜ --surface #FFFFFF ｜ --ink #16181D 近黑正文
+ *   --accent #0E7490 仪表青（唯一强调色：交互/关键态，Linear 紫与 SaaS 蓝之外的取向）
+ *   --line #E4E7EB 发丝线 ｜ 语义色 success #15803D / warning #B45309 / danger #DC2626
+ * - Type：中文优先系统栈（PingFang SC/微软雅黑），拉丁与数字用系统 sans；
+ *   **数据类文本（ID/计数/工时/编码）一律 ui-monospace** —— 工程 vernacular 的标识性表达。
+ * - Layout：墨色侧栏（#16181D）× 浅色内容区的强分区；行高 36px 密度；发丝线分隔；
+ *   内容左对齐；列表页无卡片套件（直接表格 + 发丝线）。
+ * - Principles：
+ *   1. 密度即专业（管理台是工具不是海报）
+ *   2. 一个强调色花在交互上（boldness 只花一处）
+ *   3. 数字说话（等宽字体呈现一切可计量的东西）
+ *   4. 状态即色相（全站状态色一致，绝无第二套）
+ * 自检：底色非奶油、强调色非赤陶/荧光绿、列表非卡片套件、无 ALL-CAPS eyebrow、
+ * 无装饰性渐变 —— skill 点名的生成式默认样式全部规避。
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
+  --background: #f6f7f9;
+  --foreground: #16181d;
+  --card: #ffffff;
+  --card-foreground: #16181d;
+  --primary: #0e7490;
+  --primary-foreground: #ffffff;
+  --secondary: #eef0f3;
+  --secondary-foreground: #16181d;
+  --muted: #eef0f3;
+  --muted-foreground: #5c6470;
+  --accent: #e8f4f8;
+  --accent-foreground: #0e7490;
+  --destructive: #dc2626;
+  --border: #e4e7eb;
+  --input: #e4e7eb;
+  --ring: #0e7490;
+  --radius: 0.375rem;
 }
 
 @theme inline {
@@ -41,6 +61,7 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
 }
 
 body {
@@ -49,6 +70,25 @@ body {
     'Inter',
     'PingFang SC',
     'Microsoft YaHei',
+    'Noto Sans SC',
     system-ui,
     sans-serif;
+  font-size: 13px;
+}
+
+/* 数据类文本：等宽（工程 vernacular，docs/10 §1 原则 3） */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 发丝线表格（列表页规范：非卡片套件） */
+.table-hairline th {
+  @apply border-b border-border font-normal text-muted-foreground;
+}
+.table-hairline td {
+  @apply border-b border-border/60;
+}
+.table-hairline tr:last-child td {
+  @apply border-b-0;
 }

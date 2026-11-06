@@ -36,6 +36,36 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '系统状态', requiresAuth: false },
       },
       {
+        path: 'programs',
+        name: 'program-list',
+        component: () => import('../views/program/program-list.vue'),
+        meta: { title: '项目集列表', permission: 'program.browse' },
+      },
+      {
+        path: 'programs/:id',
+        name: 'program-detail',
+        component: () => import('../views/program/program-detail.vue'),
+        meta: { title: '项目集详情', permission: 'program.view' },
+      },
+      {
+        path: 'products',
+        name: 'product-list',
+        component: () => import('../views/product/product-list.vue'),
+        meta: { title: '产品列表', permission: 'product.browse' },
+      },
+      {
+        path: 'projects',
+        name: 'project-list',
+        component: () => import('../views/project/project-list.vue'),
+        meta: { title: '项目列表', permission: 'project.browse' },
+      },
+      {
+        path: 'executions',
+        name: 'execution-list',
+        component: () => import('../views/execution/execution-list.vue'),
+        meta: { title: '执行列表', permission: 'execution.browse' },
+      },
+      {
         path: 'dashboard',
         name: 'dashboard',
         component: () => import('../views/dashboard/dashboard.vue'),
