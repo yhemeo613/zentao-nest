@@ -59,7 +59,10 @@ export class PermissionSeedService implements OnModuleInit {
     }
 
     for (const perm of declared) {
-      const [module, action] = perm.split('.');
+      // 多段 action（如 project.team.browse）保留完整点号后缀，仅首段为 module（docs/06 §4.3 教训）
+      const dot = perm.indexOf('.');
+      const module = perm.slice(0, dot);
+      const action = perm.slice(dot + 1);
       const existing = await this.permRepo.findOne({
         where: { module, action },
       });

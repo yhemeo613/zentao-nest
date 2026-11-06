@@ -1,0 +1,92 @@
+# zentao-nest CI（docs/03 §10 / docs/07 §8 门禁总表）
+# 流程：install → 类型门禁 → 单测 → 构建 → 权限漂移校验（需服务，仅手动/夜间跑 HTTP 回归）
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: 类型门禁（server + web）
+        run: |
+          pnpm --filter @zentao/server ts-check
+          pnpm --filter web build
+
+      - name: 单元测试（状态机/枚举契约/权限点/错误码）
+        run: pnpm --filter @zentao/server exec vitest run test/unit
+
+      - name: 构建（shared → server/web）
+        run: pnpm build
+
+  # 集成回归：起真实 MySQL/Redis 服务容器 → 迁移 → 启动 → HTTP 断言全量回归 + 权限漂移门禁
+  integration:
+    runs-on: ubuntu-latest
+    needs: quality
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: zentao_ci
+          MYSQL_DATABASE: zentao_nest
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -pzentao_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: zentao_ci
+      DB_DATABASE: zentao_nest
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      JWT_SECRET: ci-secret-0123456789abcdef0123456789abcdef
+      SEED_ADMIN_PASSWORD: Admin@123456
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: 迁移先行（docs/01 §13 纪律）
+        run: pnpm --filter @zentao/server exec tsx node_modules/typeorm/cli.js migration:run -d src/database/data-source.ts
+
+      - name: 启动服务（后台）
+        run: |
+          cd apps/server
+          nohup node --experimental-strip-types --disable-warning=ExperimentalWarning src/main.ts > server.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/api/v1/health && break; sleep 2; done
+
+      - name: 权限点漂移门禁（docs/03 §3.1）
+        run: node apps/server/scripts/permission-drift-check.mjs
+
+      - name: HTTP 断言全量回归（P2/P3/P4/P5/P6 + Swagger 全量审计）
+        run: |
+          for f in p2-assert p3-assert e2e-fullchain p5-assert p6-assert swagger-full-audit; do
+            echo "== $f =="
+            node apps/server/test/http/$f.mjs || exit 1
+          done
