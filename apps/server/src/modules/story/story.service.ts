@@ -11,6 +11,7 @@ import { ZtProjectStory } from '../project/entities/zt-project-story.entity.js';
 import { ZtReleaseRelated } from '../release/entities/zt-release-related.entity.js';
 import { ZtRelease } from '../release/entities/zt-release.entity.js';
 import { ActivityService } from '../oa/activity.service.js';
+import { ConfigService } from '../config-module/config.service.js';
 import {
   AssignStoryDto,
   ChangeStoryDto,
@@ -43,14 +44,19 @@ export class StoryService {
     @InjectRepository(ZtRelease)
     private readonly releaseRepo: Repository<ZtRelease>,
     private readonly activity: ActivityService,
+    private readonly config: ConfigService,
   ) {}
 
   async create(dto: CreateStoryDto, operatorId: string): Promise<ZtStory> {
     // 初始状态（docs/02 §4.2）：draft 保存 → draft；active 提交 → reviewing（needReview 默认开启）
+    const wantReview = dto.status !== StoryStatus.Draft;
+    const needReview = await this.config.storyNeedReview();
     const initialStatus =
       dto.status === StoryStatus.Draft
         ? StoryStatus.Draft
-        : StoryStatus.Reviewing;
+        : needReview
+          ? StoryStatus.Reviewing
+          : StoryStatus.Active;
     if (initialStatus === StoryStatus.Reviewing && !dto.reviewerIds?.length) {
       throw new BusinessException(
         ErrorCodes.STORY.REVIEW_LIST_CONFLICT,

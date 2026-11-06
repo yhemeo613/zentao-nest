@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '../config-module/config.module.js';
 import { OaModule } from '../oa/oa.module.js';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ZtStory } from './entities/zt-story.entity.js';
@@ -14,6 +15,7 @@ import { StoryService } from './story.service.js';
 
 @Module({
   imports: [
+    ConfigModule,
     OaModule,
     TypeOrmModule.forFeature([
       ZtStory,

@@ -292,6 +292,18 @@ export class TaskService {
     return this.taskRepo.save(task);
   }
 
+  /** 回到 wait（看板拖拽回未开始列；仅 doing，docs/02 §8.1） */
+  async backToWait(operatorId: string, id: string): Promise<ZtTask> {
+    const task = await this.mustFind(id);
+    if (task.status !== 'doing') {
+      throw new BusinessException(ErrorCodes.VALIDATION.INVALID_TRANSITION);
+    }
+    task.status = 'wait';
+    const saved = await this.taskRepo.save(task);
+    await this.afterStatusChange(saved, operatorId, 'startTask');
+    return saved;
+  }
+
   /** 编辑（不改状态与工时） */
   async update(id: string, dto: UpdateTaskDto): Promise<ZtTask> {
     const task = await this.mustFind(id);

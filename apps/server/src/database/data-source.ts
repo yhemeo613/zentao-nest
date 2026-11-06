@@ -19,7 +19,7 @@ export const appDataSourceOptions = {
   database: env.DB_DATABASE ?? 'zentao_nest',
   charset: 'utf8mb4',
   namingStrategy: new ZentaoSnakeNamingStrategy(),
-  entities: ['src/modules/**/*.entity.ts'],
+  entities: ['src/modules/**/*.entity.ts', 'src/modules/**/*.entities.ts'],
   migrations: ['src/database/migrations/*.ts'],
   migrationsTableName: 'sys_migration',
 };

@@ -23,6 +23,13 @@ import { TestTaskModule } from './modules/testtask/testtask.module.js';
 import { ProjectStoryModule } from './modules/projectstory/projectstory.module.js';
 import { DocModule } from './modules/doc/doc.module.js';
 import { OaModule } from './modules/oa/oa.module.js';
+import { BoardModule } from './modules/board/board.module.js';
+import { CaselibModule } from './modules/caselib/caselib.module.js';
+import { WebhookModule } from './modules/webhook/webhook.module.js';
+import { ReportModule } from './modules/report-module/report.module.js';
+import { MyModule } from './modules/my-module/my.module.js';
+import { FileModule } from './modules/file-module/file.module.js';
+import { ConfigModule as SysConfigModule } from './modules/config-module/config.module.js';
 
 @Module({
   imports: [
@@ -71,6 +78,14 @@ import { OaModule } from './modules/oa/oa.module.js';
     ProjectStoryModule,
     DocModule,
     OaModule,
+    BoardModule,
+    SysConfigModule,
+    CaselibModule,
+    WebhookModule,
+    ReportModule,
+    MyModule,
+    FileModule,
+    ConfigModule,
   ],
 })
 export class AppModule {}

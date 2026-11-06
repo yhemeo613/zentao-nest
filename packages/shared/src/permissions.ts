@@ -246,6 +246,47 @@ export const PERMS = {
   },
   /** 配置（P5，docs/03 §4.25） */
   config: { browse: 'config.browse', manage: 'config.manage' },
+
+  /** 看板（P6，docs/03 §4.14） */
+  board: { manageLane: 'board.manageLane', manageColumn: 'board.manageColumn' },
+  /** 附件（docs/03 §4.0） */
+  file: { upload: 'file.upload', download: 'file.download', delete: 'file.delete' },
+  /** 用例库/套件/测试报告（docs/03 §4.20-4.22） */
+  caselib: {
+    browse: 'caselib.browse',
+    create: 'caselib.create',
+    edit: 'caselib.edit',
+    delete: 'caselib.delete',
+    manageCases: 'caselib.manageCases',
+    import: 'caselib.import',
+  },
+  testsuite: {
+    browse: 'testsuite.browse',
+    create: 'testsuite.create',
+    edit: 'testsuite.edit',
+    delete: 'testsuite.delete',
+    manageCases: 'testsuite.manageCases',
+  },
+  testreport: {
+    browse: 'testreport.browse',
+    create: 'testreport.create',
+    view: 'testreport.view',
+    edit: 'testreport.edit',
+    delete: 'testreport.delete',
+  },
+  /** 统计/搜索（docs/03 §4.23/§7） */
+  report: { view: 'report.view' },
+  search: { all: 'search.all' },
+  /** webhook（docs/03 §4.24） */
+  webhook: {
+    browse: 'webhook.browse',
+    create: 'webhook.create',
+    edit: 'webhook.edit',
+    delete: 'webhook.delete',
+  },
+  /** 产品线/分支（docs/03 §4.18/4.19） */
+  productline: { manage: 'productline.manage' },
+  branch: { manage: 'branch.manage' },
 } as const;
 
 type PermValues<T> = T extends string ? T : PermValues<T[keyof T]>;
