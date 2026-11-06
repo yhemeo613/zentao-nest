@@ -9,14 +9,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
     "@tanstack/vue-query": "^5.106.0",
     "@tanstack/vue-table": "^9.3.1",
+    "@vueuse/motion": "^3.0.3",
     "@zentao/shared": "workspace:*",
     "axios": "^1.21.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.23",
-    "lucide-vue-next": "^1.0.0",
+    "element-plus": "^2.14.7",
+    "md-editor-v3": "^7.1.0",
     "pinia": "^4.1.0",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.7.0",

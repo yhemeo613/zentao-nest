@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Badge } from '../ui/badge';
-import { statusMeta, type StatusEntity } from '../../types/status';
+import { statusMeta, type StatusEntity } from '../../types/status.js';
 
-const props = defineProps<{ entity: StatusEntity; status: string }>();
+const props = defineProps<{
+  entity: StatusEntity;
+  status: string;
+}>();
+
 const meta = computed(() => statusMeta(props.entity, props.status));
 </script>
 
 <template>
-  <Badge :variant="meta.variant">{{ meta.label }}</Badge>
+  <el-tag :type="meta.variant" size="small" disable-transitions>{{ meta.label }}</el-tag>
 </template>

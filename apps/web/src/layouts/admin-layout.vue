@@ -1,161 +1,193 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { RouterView, RouterLink, useRoute, useRouter } from 'vue-router';
-import { ChevronDown } from 'lucide-vue-next';
-import { menus } from '../config/menu.js';
+import { computed, watch } from 'vue';
+import { RouterView, useRoute, useRouter } from 'vue-router';
+import { Fold, Expand, ArrowDown } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import { menuGroups } from '../config/menus.js';
 import { useAppStore } from '../stores/app.js';
 import { useAuthStore } from '../stores/auth.js';
 import { usePermissionStore } from '../stores/permission.js';
-import { useToast } from '../composables/useToast.js';
-import ConfirmDialog from '../components/common/confirm-dialog.vue';
-import ToastContainer from '../components/ui/toast-container.vue';
+import GlobalSearch from '../components/common/global-search.vue';
 
-// 管理台布局：「精密仪表」——墨色侧栏 × 冷灰内容区，密度优先（docs/10 §1）
+// 管理台布局（Element Plus）：墨色侧栏 el-menu（分组+权限过滤）+ 顶栏 + 多页签 + 内容区（docs/10 §1）
 const app = useAppStore();
 const auth = useAuthStore();
 const permission = usePermissionStore();
 const route = useRoute();
 const router = useRouter();
-const toast = useToast();
 
-interface MenuNode {
-  path: string;
-  title: string;
-  icon?: unknown;
-  children?: MenuNode[];
-}
-
-const visibleMenus = computed<MenuNode[]>(() =>
-  menus
-    .filter((m) => !m.permission || permission.has(m.permission))
-    .map((m) => ({
-      path: m.path,
-      title: m.title,
-      icon: m.icon,
-      children: m.children?.filter((c) => !c.permission || permission.has(c.permission)),
-    })),
+/** 分组过滤 + 组内全空则整组隐藏 */
+const visibleGroups = computed(() =>
+  menuGroups
+    .map((g) => ({
+      title: g.title,
+      items: g.items.filter((i) => !i.permission || permission.has(i.permission)),
+    }))
+    .filter((g) => g.items.length > 0),
 );
 
-function isActive(item: { path: string; children?: { path: string }[] }): boolean {
-  const first = '/' + (route.path.split('/')[1] ?? '');
-  return (
-    route.path === item.path ||
-    item.path === first ||
-    !!item.children?.some((c) => route.path === c.path || c.path === first)
-  );
+/** 路由 → 页签登记（多页签内容区，docs/10 §1） */
+watch(
+  () => route.fullPath,
+  () => {
+    if (route.name === 'login' || route.name === 'forbidden') return;
+    const title = (route.meta.title as string | undefined) ?? String(route.name ?? '');
+    app.openTab({ name: String(route.name), title, path: route.fullPath });
+  },
+  { immediate: true },
+);
+
+function handleTabClick(name: string | number): void {
+  const tab = app.openedTabs.find((t) => t.name === name);
+  if (tab && route.fullPath !== tab.path) void router.push(tab.path);
+}
+
+function handleTabRemove(name: string | number): void {
+  const target = app.closeTab(String(name));
+  if (target) void router.push(target);
 }
 
 async function handleLogout(): Promise<void> {
   await auth.logout();
-  toast.info('已退出登录');
+  ElMessage.success('已退出登录');
   void router.push({ name: 'login' });
 }
 </script>
 
 <template>
-  <div class="flex min-h-dvh">
-    <!-- 墨色侧栏：强分区（docs/10 设计方案 Layout 项） -->
-    <aside
-      class="flex shrink-0 flex-col bg-[#16181d] text-zinc-300 transition-all"
-      :class="app.sidebarCollapsed ? 'w-14' : 'w-48'"
-    >
+  <el-container class="h-dvh overflow-hidden">
+    <!-- 墨色侧栏（精密仪表主题） -->
+    <el-aside :width="app.sidebarCollapsed ? '64px' : '200px'" class="aside-dark">
       <div class="flex h-12 items-center border-b border-white/10 px-4">
-        <span
-          v-if="!app.sidebarCollapsed"
-          class="num text-sm font-semibold tracking-wide text-zinc-100"
-          >ztn</span
-        >
-        <span v-else class="num text-sm font-semibold text-zinc-100">Z</span>
+        <span class="num text-sm font-semibold tracking-wide text-zinc-100">
+          {{ app.sidebarCollapsed ? 'Z' : 'ztn' }}
+        </span>
       </div>
-      <nav class="flex-1 overflow-y-auto py-2 text-[13px]">
-        <template v-for="menu in visibleMenus" :key="menu.path">
-          <template v-if="menu.children && menu.children.length">
-            <div
-              class="mt-3 px-4 py-1 text-[11px] uppercase tracking-wider text-zinc-500"
-              :title="app.sidebarCollapsed ? menu.title : undefined"
-            >
-              <span v-if="!app.sidebarCollapsed">{{ menu.title }}</span>
-            </div>
-            <RouterLink
-              v-for="child in menu.children"
-              :key="child.path"
-              :to="child.path"
-              class="block border-l-2 px-4 py-1.5 transition-colors"
-              :class="
-                isActive(child)
-                  ? 'border-teal-400 bg-white/10 text-zinc-50'
-                  : 'border-transparent text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
-              "
-              :title="app.sidebarCollapsed ? child.title : undefined"
-            >
-              <span v-if="!app.sidebarCollapsed">{{ child.title }}</span>
-            </RouterLink>
+      <el-scrollbar>
+        <el-menu
+          :default-active="route.path"
+          :collapse="app.sidebarCollapsed"
+          :collapse-transition="false"
+          router
+          background-color="#16181d"
+          text-color="#a3a6ad"
+          active-text-color="#5eead4"
+          class="aside-menu"
+        >
+          <template v-for="group in visibleGroups" :key="group.title ?? 'main'">
+            <el-menu-item-group :title="app.sidebarCollapsed ? undefined : group.title">
+              <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+                <el-icon><component :is="item.icon" /></el-icon>
+                <template #title>{{ item.title }}</template>
+              </el-menu-item>
+            </el-menu-item-group>
           </template>
-          <RouterLink
-            v-else
-            :to="menu.path"
-            class="block border-l-2 px-4 py-1.5 transition-colors"
-            :class="
-              isActive(menu)
-                ? 'border-teal-400 bg-white/10 text-zinc-50'
-                : 'border-transparent text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
-            "
-          >
-            {{ menu.title }}
-          </RouterLink>
-        </template>
-      </nav>
-    </aside>
+        </el-menu>
+      </el-scrollbar>
+    </el-aside>
 
-    <div class="flex min-w-0 flex-1 flex-col">
-      <header
-        class="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card px-4"
-      >
+    <el-container class="min-w-0">
+      <el-header class="layout-header" height="48px">
         <div class="flex items-center gap-3">
-          <button
-            type="button"
-            class="text-muted-foreground hover:text-foreground"
-            @click="app.toggleSidebar()"
-          >
-            ☰
-          </button>
+          <el-icon class="cursor-pointer text-muted-foreground" @click="app.toggleSidebar()">
+            <Fold v-if="!app.sidebarCollapsed" />
+            <Expand v-else />
+          </el-icon>
           <span class="text-sm text-muted-foreground">{{ route.meta.title ?? '' }}</span>
         </div>
-        <div class="flex items-center gap-3 text-[13px]">
+        <div class="flex items-center gap-4 text-[13px]">
+          <GlobalSearch />
           <template v-if="auth.isLoggedIn">
-            <span class="text-foreground/80">{{ auth.user?.realname ?? auth.user?.account }}</span>
-            <div class="relative group">
-              <button
-                type="button"
-                class="flex items-center gap-1 text-muted-foreground hover:text-foreground"
-              >
-                <ChevronDown class="h-3.5 w-3.5" />
-              </button>
-              <div
-                class="invisible absolute right-0 z-50 mt-1 w-28 rounded-md border border-border bg-card py-1 shadow-md group-hover:visible"
-              >
-                <button
-                  type="button"
-                  class="block w-full px-3 py-1.5 text-left hover:bg-accent"
-                  @click="handleLogout"
-                >
-                  退出登录
-                </button>
-              </div>
-            </div>
+            <el-dropdown @command="(cmd: string) => cmd === 'logout' && handleLogout()">
+              <span class="cursor-pointer text-foreground/80">
+                {{ auth.user?.realname ?? auth.user?.account }}
+                <el-icon class="align-middle"><ArrowDown /></el-icon>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </template>
-          <RouterLink v-else :to="{ name: 'login' }" class="text-primary hover:underline"
-            >登录</RouterLink
-          >
         </div>
-      </header>
+      </el-header>
 
-      <main class="flex-1 overflow-y-auto p-4">
-        <RouterView />
-      </main>
-    </div>
+      <!-- 多页签（对齐禅道页签体验） -->
+      <el-tabs
+        v-model="app.activeTab"
+        type="card"
+        class="layout-tabs"
+        @tab-change="handleTabClick"
+        @tab-remove="handleTabRemove"
+      >
+        <el-tab-pane
+          v-for="tab in app.openedTabs"
+          :key="tab.name"
+          :label="tab.title"
+          :name="tab.name"
+          :closable="tab.name !== 'dashboard'"
+        />
+      </el-tabs>
 
-    <ConfirmDialog />
-    <ToastContainer />
-  </div>
+      <el-main class="p-4">
+        <RouterView v-slot="{ Component }">
+          <Transition name="page-fade" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </RouterView>
+      </el-main>
+    </el-container>
+  </el-container>
 </template>
+
+<style scoped>
+.aside-dark {
+  background-color: #16181d;
+  transition: width 0.2s ease;
+}
+.aside-menu {
+  border-right: none;
+}
+.aside-menu :deep(.el-menu-item-group__title) {
+  padding: 10px 16px 4px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #6b7080;
+}
+.layout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.layout-tabs {
+  --el-tabs-header-height: 34px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  padding: 0 12px;
+}
+.layout-tabs :deep(.el-tabs__item) {
+  font-size: 12.5px;
+  height: 30px;
+  line-height: 30px;
+}
+.layout-tabs :deep(.el-tabs__item.is-active) {
+  color: var(--primary);
+}
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.page-fade-leave-to {
+  opacity: 0;
+}
+</style>

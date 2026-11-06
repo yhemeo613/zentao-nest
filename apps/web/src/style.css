@@ -92,3 +92,80 @@ body {
 .table-hairline tr:last-child td {
   @apply border-b-0;
 }
+
+/* Element Plus 主色对齐仪表青 */
+:root {
+  --el-color-primary: #0e7490;
+  --el-color-primary-light-3: #3193b3;
+  --el-color-primary-light-5: #5aa9c4;
+  --el-color-primary-light-7: #86bfd3;
+  --el-color-primary-light-8: #a3cedd;
+  --el-color-primary-light-9: #d7e8ef;
+  --el-color-primary-dark-2: #0b5d73;
+  /* 密度即专业：EP 全局尺寸对齐管理台 13px 基线 */
+  --el-font-size-base: 13px;
+  --el-border-radius-base: 4px;
+}
+
+/* 表格密度与发丝线（列表页规范：非卡片套件，docs/10 §1） */
+.el-table {
+  --el-table-border-color: var(--border);
+  --el-table-header-bg-color: #f3f4f6;
+  font-size: 13px;
+}
+.el-table th.el-table__cell {
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+.el-table .cell {
+  padding: 0 10px;
+}
+
+/* 弹窗圆角对齐设计令牌 */
+.el-dialog {
+  --el-dialog-border-radius: var(--radius);
+}
+
+/* 禅道风格基线（docs/10 §6）：操作列灰链接化——安静可扫读，hover 变主色 */
+.el-table .el-button.is-link {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+.el-table .el-button.is-link:hover {
+  color: var(--primary);
+}
+.el-table .el-button.is-link.el-button--danger:hover {
+  color: var(--destructive);
+}
+
+/* 大数字统计卡（仪表盘/项目详情）：标签小、数字大、等宽 */
+.stat-card {
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 16px;
+}
+.stat-card .stat-label {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.stat-card .stat-num {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--foreground);
+}
+.stat-card.is-clickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.stat-card.is-clickable:hover {
+  border-color: var(--primary);
+}
+
+/* 行内指派虚线下划线语义（可编辑暗示） */
+tr:hover .assign-hint {
+  color: var(--primary);
+}

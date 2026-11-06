@@ -1,7 +1,8 @@
+import axios from 'axios';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { authApi, type CurrentUserVo, type LoginParams } from '../api/auth.js';
-import { setTokenProvider } from '../lib/http.js';
+import { setRefreshHandler, setTokenProvider } from '../lib/http.js';
 
 const STORAGE_KEY = 'zentao.auth';
 
@@ -91,7 +92,27 @@ export const useAuthStore = defineStore('auth', () => {
   };
 });
 
-/** pinia 安装后调用：把 accessToken 提供给 http 层（单一事实源，修复键位漂移） */
+/** pinia 安装后调用：把会话状态提供给 http 层（token/刷新/登出，单一事实源） */
 export function installAuthBridge(): void {
   setTokenProvider(() => useAuthStore().accessToken);
+  setRefreshHandler(async () => {
+    const auth = useAuthStore();
+    if (!auth.refreshToken) return false;
+    try {
+      // raw axios 直连：不走 http 实例拦截器，避免 401 刷新递归（docs/05 §4）
+      const base = import.meta.env.VITE_API_BASE ?? '/api/v1';
+      const res = await axios.post(`${base}/auth/refresh`, { refreshToken: auth.refreshToken });
+      const body = res.data as {
+        code: number;
+        data?: { accessToken: string; refreshToken: string };
+      };
+      if (body.code !== 0 || !body.data) return false;
+      auth.accessToken = body.data.accessToken;
+      auth.refreshToken = body.data.refreshToken;
+      auth.persist();
+      return true;
+    } catch {
+      return false;
+    }
+  });
 }

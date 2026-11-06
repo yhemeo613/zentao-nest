@@ -16,11 +16,14 @@ export class ApiError extends Error {
 
 type UnauthorizedHandler = () => void;
 type TokenProvider = () => string | null;
+/** 刷新协调器：auth store 注入（raw axios 直连 refresh，避免拦截器递归） */
+type RefreshHandler = () => Promise<boolean>;
 
 let unauthorizedHandler: UnauthorizedHandler | null = null;
 /** token 提供者：由 auth store 注入（单一事实源，避免存储键位漂移） */
 let tokenProvider: TokenProvider = () => null;
-/** 刷新队列（P1 /auth/refresh 落地后启用单飞刷新+重放，docs/05 §4） */
+let refreshHandler: RefreshHandler | null = null;
+/** 401 单飞刷新（并发 401 只发起一次刷新，成功后各自重放，docs/05 §4） */
 let refreshing: Promise<boolean> | null = null;
 
 /** 由 auth store 注入：401 清会话并跳登录 */
@@ -31,6 +34,16 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler): void {
 /** 由 auth store 注入：动态取当前 accessToken */
 export function setTokenProvider(provider: TokenProvider): void {
   tokenProvider = provider;
+}
+
+/** 由 auth store 注入：refresh 执行体（成功返回 true 并已更新本地 token） */
+export function setRefreshHandler(handler: RefreshHandler): void {
+  refreshHandler = handler;
+}
+
+interface ReplayConfig extends InternalAxiosRequestConfig {
+  /** 已重放一次的请求不再重试刷新（防循环） */
+  __retried?: boolean;
 }
 
 export const http: AxiosInstance = axios.create({
@@ -56,38 +69,30 @@ http.interceptors.response.use(
     const status = error.response?.status;
     const body = error.response?.data as
       { code?: number; message?: string; traceId?: string } | undefined;
+    const config = error.config as ReplayConfig | undefined;
 
-    // 认证失效：2001/2002/2007（docs/05 §4 错误码路由）——P1 接入 refresh 后先尝试刷新
-    if (status === 401) {
-      if (refreshing) {
-        await refreshing.catch(() => undefined);
-      } else if (unauthorizedHandler) {
-        unauthorizedHandler();
+    // 认证失效：先单飞刷新再重放一次；刷新不可用/失败 → 清会话跳登录（docs/05 §4）
+    if (status === 401 && config && !config.__retried && refreshHandler) {
+      refreshing ??= refreshHandler().finally(() => {
+        refreshing = null;
+      });
+      const ok = await refreshing;
+      if (ok) {
+        config.__retried = true;
+        return http.request(config);
       }
-      return Promise.reject(
-        new ApiError(
-          body?.code ?? ErrorCodes.AUTH.TOKEN_INVALID,
-          body?.message ?? '登录状态失效',
-          body?.traceId ?? '-',
-        ),
-      );
+    }
+    if (status === 401) {
+      unauthorizedHandler?.();
     }
 
     return Promise.reject(
       new ApiError(
-        body?.code ?? ErrorCodes.SYS.DEPENDENCY_UNAVAILABLE,
+        body?.code ??
+          (status === 401 ? ErrorCodes.AUTH.TOKEN_INVALID : ErrorCodes.SYS.DEPENDENCY_UNAVAILABLE),
         body?.message ?? error.message,
         body?.traceId ?? '-',
       ),
     );
   },
 );
-
-/** P1 落地：单飞刷新（占位拒绝，不做假成功——docs/06 §1 纪律） */
-export function beginRefresh(): Promise<boolean> {
-  refreshing = Promise.reject(new Error('refresh 接口随 P1 交付'));
-  refreshing.catch(() => undefined);
-  return refreshing.finally(() => {
-    refreshing = null;
-  });
-}

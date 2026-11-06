@@ -27,9 +27,10 @@
 | --- | --- | --- |
 | 后端框架 | NestJS 10+ / TypeORM / MySQL8 / Redis | Prisma、Sequelize、MongoDB、GraphQL |
 | 前端框架 | Vue3.5 + Vite + Pinia + @tanstack/vue-query | React、Redux/MobX、Nuxt |
-| UI | shadcn-vue + Tailwind CSS | Element Plus、Ant Design Vue、Less/Sass/SCSS |
+| UI | Element Plus 2.14 + Tailwind CSS 4（设计令牌）｜2026-11-06 决策：走 docs/05 §1 备选路径，三方组件库优先、禁止自绘 UI 基础件 | 自绘组件库（shadcn-vue 拷贝源码模式）、Ant Design Vue、Less/Sass/SCSS、emoji 图标 |
 | 实时 | socket.io-client / @nestjs/websockets | WebSocket 裸协议、SockJS、Pusher |
 | 编辑器 | md-editor-v3（统一 Markdown） | CKEditor/TinyMCE/Quill 富文本 |
+| 图标/动画 | @element-plus/icons-vue、@vueuse/motion | emoji 图标、自造图标/动画 |
 | 图表 | ECharts 5 | Chart.js、D3 自绘 |
 | 工具库 | dayjs、lodash-es、zod+vee-validate | moment、自造 utils 重复轮子 |
 

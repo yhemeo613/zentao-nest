@@ -1,35 +1,42 @@
 import { http } from '../lib/http.js';
 
-/** 项目集（契约：docs/03 §4.2） */
+/** 项目集（契约：docs/03 §4.2，2026-11-06 以源码为准） */
 export interface ProgramVo {
-  id: string;
+  id: number;
   parentId: number;
   grade: number;
   pathStr: string;
+  sortNo: number;
   name: string;
-  code: string;
-  pmId: string;
-  budget: string;
+  code: string | null;
+  pmId: string | null;
+  budget: number | null;
   budgetUnit: string;
   begin: string | null;
   end: string | null;
-  status: string;
+  realBegan: string | null;
+  realEnd: string | null;
+  status: 'wait' | 'doing' | 'suspended' | 'closed';
+  closedReason: string | null;
   acl: string;
   desc: string | null;
 }
 
+export interface ProgramSummaryVo {
+  products: number;
+  projects: number;
+  childPrograms: number;
+}
+
 export const programApi = {
-  /** GET /programs 项目集列表 */
   list(): Promise<ProgramVo[]> {
     return http.get('/programs') as Promise<ProgramVo[]>;
   },
 
-  /** GET /programs/:id */
-  get(id: string): Promise<ProgramVo> {
+  get(id: number | string): Promise<ProgramVo> {
     return http.get(`/programs/${id}`) as Promise<ProgramVo>;
   },
 
-  /** POST /programs 创建 */
   create(dto: {
     name: string;
     parentId?: number;
@@ -37,27 +44,39 @@ export const programApi = {
     end: string;
     code?: string;
     pmId?: string;
+    budget?: number;
+    budgetUnit?: string;
     desc?: string;
+    acl?: string;
+    sortNo?: number;
   }): Promise<ProgramVo> {
     return http.post('/programs', dto) as Promise<ProgramVo>;
   },
 
-  /** PUT /programs/:id */
+  /** begin 不可改；end 为延期 */
   update(
-    id: string,
-    dto: { name?: string; end?: string; desc?: string; pmId?: string },
+    id: number | string,
+    dto: {
+      name?: string;
+      code?: string;
+      pmId?: string;
+      budget?: number;
+      end?: string;
+      desc?: string;
+      sortNo?: number;
+    },
   ): Promise<ProgramVo> {
     return http.put(`/programs/${id}`, dto) as Promise<ProgramVo>;
   },
 
-  /** DELETE /programs/:id 软删 */
-  remove(id: string): Promise<null> {
+  /** 有子项目集/产品/项目报 4002 */
+  remove(id: number | string): Promise<null> {
     return http.delete(`/programs/${id}`) as Promise<null>;
   },
 
-  /** POST /programs/:id/start|suspend|close|activate 状态流转 */
+  /** close 必填 closedReason；有未关子项目集 4603 */
   transition(
-    id: string,
+    id: number | string,
     action: 'start' | 'suspend' | 'close' | 'activate',
     closedReason?: string,
   ): Promise<ProgramVo> {
@@ -65,12 +84,7 @@ export const programApi = {
     return http.post(`/programs/${id}/${action}`, body ?? {}) as Promise<ProgramVo>;
   },
 
-  /** GET /programs/:id/summary 概览 */
-  summary(id: string): Promise<{ products: number; projects: number; childPrograms: number }> {
-    return http.get(`/programs/${id}/summary`) as Promise<{
-      products: number;
-      projects: number;
-      childPrograms: number;
-    }>;
+  summary(id: number | string): Promise<ProgramSummaryVo> {
+    return http.get(`/programs/${id}/summary`) as Promise<ProgramSummaryVo>;
   },
 };
