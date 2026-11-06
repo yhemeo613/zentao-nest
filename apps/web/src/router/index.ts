@@ -3,6 +3,7 @@ import { PERMS } from '@zentao/shared';
 import { useAuthStore } from '../stores/auth.js';
 import { usePermissionStore } from '../stores/permission.js';
 import { setUnauthorizedHandler } from '../lib/http.js';
+import { closeSocket } from '../lib/socket.js';
 
 /**
  * 静态路由表 + 三层权限控制（docs/05 §5，ADR D010）
@@ -155,6 +156,30 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Bug 详情', permission: PERMS.bug.view },
       },
       {
+        path: 'docs',
+        name: 'doc-center',
+        component: () => import('../views/doc/doc-center.vue'),
+        meta: { title: '文档', permission: PERMS.doc.browseSpace },
+      },
+      {
+        path: 'todos',
+        name: 'todo-list',
+        component: () => import('../views/oa/todo-list.vue'),
+        meta: { title: '待办', permission: PERMS.todo.browse },
+      },
+      {
+        path: 'efforts',
+        name: 'effort-list',
+        component: () => import('../views/oa/effort-list.vue'),
+        meta: { title: '工时', permission: PERMS.effort.browse },
+      },
+      {
+        path: 'reports',
+        name: 'report-center',
+        component: () => import('../views/report/report-center.vue'),
+        meta: { title: '统计', permission: PERMS.report.view },
+      },
+      {
         path: 'cases',
         name: 'case-list',
         component: () => import('../views/case/case-list.vue'),
@@ -221,6 +246,7 @@ export function createAppRouter() {
 
   // http 层 401 桥接：清会话 → 登录页（docs/05 §4 错误码路由）
   setUnauthorizedHandler(() => {
+    closeSocket();
     const auth = useAuthStore();
     auth.forceLogout();
     void router.push({ name: 'login' });

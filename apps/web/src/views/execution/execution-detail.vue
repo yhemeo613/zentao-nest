@@ -12,6 +12,7 @@ import StatusTag from '../../components/common/status-tag.vue';
 import ActionToolbar, { type ToolbarAction } from '../../components/common/action-toolbar.vue';
 import TeamPanel from '../../components/common/team-panel.vue';
 import TaskCreateDialog from '../../components/common/task-create-dialog.vue';
+import BoardView from '../board/board-view.vue';
 
 // 执行详情：概览 / 任务 / 团队（docs/10 §4）
 const route = useRoute();
@@ -187,6 +188,10 @@ function fmtDate(value: string | null): string {
             >
           </el-table-column>
         </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="看板" name="board" lazy>
+        <BoardView :execution-id="executionId" />
       </el-tab-pane>
 
       <el-tab-pane label="团队" name="team">

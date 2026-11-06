@@ -14,6 +14,7 @@ import StatusTag from '../../components/common/status-tag.vue';
 import ActionToolbar, { type ToolbarAction } from '../../components/common/action-toolbar.vue';
 import TeamPanel from '../../components/common/team-panel.vue';
 import ActionLogPanel from '../../components/common/action-log.vue';
+import AclEditor from '../../components/common/acl-editor.vue';
 
 // 项目详情：概览 / 关联产品 / 执行 / 团队（docs/10 §4）
 const route = useRoute();
@@ -181,6 +182,12 @@ function openExecution(id: number): void {
           </el-descriptions-item>
         </el-descriptions>
         <ActionLogPanel class="mt-4" object-type="project" :object-id="projectId" />
+        <AclEditor
+          class="mt-4"
+          object-type="project"
+          :object-id="projectId"
+          :acl="detail.data.value.acl"
+        />
       </el-tab-pane>
 
       <el-tab-pane label="关联产品" name="products">

@@ -11,6 +11,9 @@ import { useConfirmAction } from '../../composables/useConfirmAction.js';
 import { describeError } from '../../lib/errors.js';
 import StatusTag from '../../components/common/status-tag.vue';
 import ActionToolbar, { type ToolbarAction } from '../../components/common/action-toolbar.vue';
+import BuildPanel from '../../components/common/build-panel.vue';
+import ReleasePanel from '../../components/common/release-panel.vue';
+import AclEditor from '../../components/common/acl-editor.vue';
 import ActionLogPanel from '../../components/common/action-log.vue';
 
 // 产品详情：概览 / 模块树 / 需求池（docs/10 §4）
@@ -172,6 +175,12 @@ async function removeModule(node: ModuleNode): Promise<void> {
           </el-descriptions-item>
         </el-descriptions>
         <ActionLogPanel class="mt-4" object-type="product" :object-id="productId" />
+        <AclEditor
+          class="mt-4"
+          object-type="product"
+          :object-id="productId"
+          :acl="detail.data.value.acl"
+        />
       </el-tab-pane>
 
       <el-tab-pane label="模块" name="modules">
@@ -225,6 +234,14 @@ async function removeModule(node: ModuleNode): Promise<void> {
             </div>
           </template>
         </el-tree>
+      </el-tab-pane>
+
+      <el-tab-pane label="构建" name="builds" lazy>
+        <BuildPanel :product-id="productId" />
+      </el-tab-pane>
+
+      <el-tab-pane label="发布" name="releases" lazy>
+        <ReleasePanel :product-id="productId" />
       </el-tab-pane>
 
       <el-tab-pane label="需求池" name="stories">

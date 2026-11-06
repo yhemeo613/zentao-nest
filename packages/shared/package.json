@@ -15,5 +15,8 @@
     "build": "tsc -p tsconfig.json",
     "lint": "echo \"(shared) lint: 待 P1 接入 eslint\" && exit 0"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
 }

@@ -1,11 +1,12 @@
 # zentao-nest 前端镜像（node build → nginx 托管，docs/05 §11）
 FROM node:22-alpine AS builder
 WORKDIR /build
-RUN corepack enable
+# 显式钉 pnpm 版本（同 apps/server/Dockerfile）
+RUN npm i -g pnpm@10.30.2
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
-RUN pnpm install --frozen-lockfile --filter web --filter @zentao/shared
+RUN pnpm install --frozen-lockfile
 COPY packages/shared packages/shared
 COPY apps/web apps/web
 RUN pnpm --filter @zentao/shared build \

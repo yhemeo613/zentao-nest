@@ -1,29 +1,34 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
-import { RouterView, useRoute, useRouter } from 'vue-router';
+import { RouterView, RouterLink, useRoute, useRouter } from 'vue-router';
 import { Fold, Expand, ArrowDown } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import { menuGroups } from '../config/menus.js';
+import { navGroups, resolveActiveGroup } from '../config/menus.js';
 import { useAppStore } from '../stores/app.js';
 import { useAuthStore } from '../stores/auth.js';
 import { usePermissionStore } from '../stores/permission.js';
 import GlobalSearch from '../components/common/global-search.vue';
+import NotificationBell from '../components/common/notification-bell.vue';
+import { closeSocket } from '../lib/socket.js';
 
-// 管理台布局（Element Plus）：墨色侧栏 el-menu（分组+权限过滤）+ 顶栏 + 多页签 + 内容区（docs/10 §1）
+// 双导航布局（禅道式，docs/10 §6.1）：顶部主导航换语境 + 墨色侧栏换页面 + 多页签内容区
 const app = useAppStore();
 const auth = useAuthStore();
 const permission = usePermissionStore();
 const route = useRoute();
 const router = useRouter();
 
-/** 分组过滤 + 组内全空则整组隐藏 */
+const activeGroup = computed(() => resolveActiveGroup(route.path));
+
+/** 顶部导航项：组内任一子项可见即显示 */
 const visibleGroups = computed(() =>
-  menuGroups
-    .map((g) => ({
-      title: g.title,
-      items: g.items.filter((i) => !i.permission || permission.has(i.permission)),
-    }))
-    .filter((g) => g.items.length > 0),
+  navGroups.filter(
+    (g) => g.key === 'my' || g.items.some((i) => !i.permission || permission.has(i.permission)),
+  ),
+);
+
+const visibleSideItems = computed(() =>
+  activeGroup.value.items.filter((i) => !i.permission || permission.has(i.permission)),
 );
 
 /** 路由 → 页签登记（多页签内容区，docs/10 §1） */
@@ -48,6 +53,7 @@ function handleTabRemove(name: string | number): void {
 }
 
 async function handleLogout(): Promise<void> {
+  closeSocket();
   await auth.logout();
   ElMessage.success('已退出登录');
   void router.push({ name: 'login' });
@@ -56,8 +62,8 @@ async function handleLogout(): Promise<void> {
 
 <template>
   <el-container class="h-dvh overflow-hidden">
-    <!-- 墨色侧栏（精密仪表主题） -->
-    <el-aside :width="app.sidebarCollapsed ? '64px' : '200px'" class="aside-dark">
+    <!-- 墨色侧栏：当前语境的子菜单 -->
+    <el-aside :width="app.sidebarCollapsed ? '64px' : '176px'" class="aside-dark">
       <div class="flex h-12 items-center border-b border-white/10 px-4">
         <span class="num text-sm font-semibold tracking-wide text-zinc-100">
           {{ app.sidebarCollapsed ? 'Z' : 'ztn' }}
@@ -74,28 +80,37 @@ async function handleLogout(): Promise<void> {
           active-text-color="#5eead4"
           class="aside-menu"
         >
-          <template v-for="group in visibleGroups" :key="group.title ?? 'main'">
-            <el-menu-item-group :title="app.sidebarCollapsed ? undefined : group.title">
-              <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
-                <el-icon><component :is="item.icon" /></el-icon>
-                <template #title>{{ item.title }}</template>
-              </el-menu-item>
-            </el-menu-item-group>
-          </template>
+          <el-menu-item v-for="item in visibleSideItems" :key="item.path" :index="item.path">
+            <el-icon><component :is="item.icon" /></el-icon>
+            <template #title>{{ item.title }}</template>
+          </el-menu-item>
         </el-menu>
       </el-scrollbar>
+      <div
+        class="flex h-10 shrink-0 cursor-pointer items-center gap-2 border-t border-white/10 px-4 text-zinc-500 hover:text-zinc-300"
+        @click="app.toggleSidebar()"
+      >
+        <el-icon><Fold v-if="!app.sidebarCollapsed" /><Expand v-else /></el-icon>
+        <span v-if="!app.sidebarCollapsed" class="text-xs">收起侧栏</span>
+      </div>
     </el-aside>
 
     <el-container class="min-w-0">
-      <el-header class="layout-header" height="48px">
-        <div class="flex items-center gap-3">
-          <el-icon class="cursor-pointer text-muted-foreground" @click="app.toggleSidebar()">
-            <Fold v-if="!app.sidebarCollapsed" />
-            <Expand v-else />
-          </el-icon>
-          <span class="text-sm text-muted-foreground">{{ route.meta.title ?? '' }}</span>
-        </div>
+      <!-- 顶部主导航（换语境） -->
+      <el-header class="topnav" height="44px">
+        <nav class="flex items-center gap-1">
+          <RouterLink
+            v-for="group in visibleGroups"
+            :key="group.key"
+            :to="group.items[0].path"
+            class="topnav-item"
+            :class="{ 'is-active': activeGroup.key === group.key }"
+          >
+            {{ group.label }}
+          </RouterLink>
+        </nav>
         <div class="flex items-center gap-4 text-[13px]">
+          <NotificationBell />
           <GlobalSearch />
           <template v-if="auth.isLoggedIn">
             <el-dropdown @command="(cmd: string) => cmd === 'logout' && handleLogout()">
@@ -143,24 +158,46 @@ async function handleLogout(): Promise<void> {
 
 <style scoped>
 .aside-dark {
+  display: flex;
+  flex-direction: column;
   background-color: #16181d;
   transition: width 0.2s ease;
 }
 .aside-menu {
   border-right: none;
+  flex: 1;
 }
-.aside-menu :deep(.el-menu-item-group__title) {
-  padding: 10px 16px 4px;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: #6b7080;
-}
-.layout-header {
+.topnav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border);
   background: var(--card);
+  padding: 0 16px;
+}
+.topnav-item {
+  position: relative;
+  padding: 0 14px;
+  line-height: 42px;
+  font-size: 13.5px;
+  color: var(--muted-foreground);
+  transition: color 0.15s ease;
+}
+.topnav-item:hover {
+  color: var(--foreground);
+}
+.topnav-item.is-active {
+  color: var(--primary);
+  font-weight: 500;
+}
+.topnav-item.is-active::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  background: var(--primary);
 }
 .layout-tabs {
   --el-tabs-header-height: 34px;

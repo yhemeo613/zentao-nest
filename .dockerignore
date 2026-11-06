@@ -1,0 +1,17 @@
+# 构建上下文瘦身 + 防止宿主机 node_modules/dist 覆盖镜像内产物
+**/node_modules
+**/dist
+.git
+.github
+.turbo
+.husky
+.oxlintrc.json
+docs
+reference
+scripts
+uploads
+*.log
+*.md
+!README.md
+docker-compose.yml
+**/.env
