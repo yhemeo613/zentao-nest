@@ -224,17 +224,17 @@ async function submitToStory(): Promise<void> {
 
 <template>
   <div v-if="detail.data.value" class="space-y-4">
-    <el-breadcrumb class="mb-1">
-      <el-breadcrumb-item :to="{ path: '/bugs' }">Bug</el-breadcrumb-item>
-      <el-breadcrumb-item>{{ '#' + detail.data.value.id }}</el-breadcrumb-item>
-    </el-breadcrumb>
+    <div class="mb-3 flex items-center gap-3">
+      <el-button link @click="router.push('/bugs')"
+        ><el-icon><ArrowLeft /></el-icon
+      ></el-button>
+      <span class="num rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground"
+        >#{{ detail.data.value.id }}</span
+      >
+      <h1 class="truncate text-lg font-bold">{{ detail.data.value.title }}</h1>
+    </div>
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex min-w-0 items-center gap-3">
-        <el-button link @click="router.push('/bugs')"
-          ><el-icon><ArrowLeft /></el-icon
-        ></el-button>
-        <span class="num text-muted-foreground">#{{ detail.data.value.id }}</span>
-        <h1 class="truncate text-lg font-semibold">{{ detail.data.value.title }}</h1>
         <StatusTag entity="bug" :status="detail.data.value.status" />
         <el-tag
           v-if="!detail.data.value.confirmed && detail.data.value.status === 'active'"

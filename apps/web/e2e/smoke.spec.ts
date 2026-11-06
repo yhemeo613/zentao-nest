@@ -12,12 +12,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('顶部主导航切换语境（侧栏随之变化）', async ({ page }) => {
-  await page.getByRole('link', { name: '产品' }).click();
+  await page.locator('.topnav-center').getByRole('link', { name: '产品' }).click();
   await expect(page).toHaveURL(/\/products/);
-  await expect(page.locator('.el-menu').getByText('需求')).toBeVisible();
-  await page.getByRole('link', { name: '测试' }).click();
+  await expect(page.locator('.sidebar').getByText('需求')).toBeVisible();
+  await page.locator('.topnav-center').getByRole('link', { name: '测试' }).click();
   await expect(page).toHaveURL(/\/cases/);
-  await expect(page.locator('.el-menu').getByText('测试单')).toBeVisible();
+  await expect(page.locator('.sidebar').getByText('测试单')).toBeVisible();
 });
 
 test('需求列表加载且状态为圆点样式', async ({ page }) => {

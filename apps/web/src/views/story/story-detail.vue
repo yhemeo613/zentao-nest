@@ -3,20 +3,19 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-import { ArrowLeft } from '@element-plus/icons-vue';
-import { PERMS, StoryStatus, StoryReviewResult, StoryClosedReason } from '@zentao/shared';
+import { ArrowLeft, Plus } from '@element-plus/icons-vue';
+import { PERMS, StoryReviewResult, StoryClosedReason } from '@zentao/shared';
 import { storyApi } from '../../api/story.js';
 import { useConfirmAction } from '../../composables/useConfirmAction.js';
 import { describeError } from '../../lib/errors.js';
 import { fmtDateTime } from '../../lib/format.js';
-import StatusTag from '../../components/common/status-tag.vue';
-import ActionToolbar, { type ToolbarAction } from '../../components/common/action-toolbar.vue';
+import { useEntityNames } from '../../composables/useEntityNames.js';
+import StatusDot from '../../components/common/status-dot.vue';
 import MarkdownView from '../../components/common/markdown-view.vue';
 import UserSelect from '../../components/common/user-select.vue';
 import ActionLogPanel from '../../components/common/action-log.vue';
-import { useEntityNames } from '../../composables/useEntityNames.js';
 
-// 需求详情：动作条（评审四结果/变更版本化/关闭/激活/指派/拆分）+ spec/verify Markdown（docs/02 §4）
+// 需求详情（复刻禅道 story/view：#ID 胶囊标题区 + 左主栏 sections/历史记录 + 右栏基本信息/一生 + 底部悬浮动作栏）
 const route = useRoute();
 const router = useRouter();
 const queryClient = useQueryClient();
@@ -35,89 +34,33 @@ function invalidateAll(): void {
 }
 const invalidate = [invalidateAll];
 
-const actions = computed<ToolbarAction[]>(() => {
-  const s = detail.data.value;
-  if (!s) return [];
-  const list: ToolbarAction[] = [];
-  if (s.status === StoryStatus.Reviewing) {
-    list.push({
-      key: 'review',
-      label: '评审',
-      permission: PERMS.story.review,
-      type: 'primary',
-      run: () => (reviewOpen.value = true),
-    });
-    list.push({
-      key: 'recall-review',
-      label: '撤回评审',
-      permission: PERMS.story.recallReview,
-      run: () =>
-        confirmAction({
-          title: '撤回评审',
-          message: '确定撤回本次评审吗？（需求回到草稿态）',
-          run: () => storyApi.recallReview(s.id),
-          invalidate,
-        }),
-    });
+const s = computed(() => detail.data.value);
+const can = (action: string): boolean => {
+  const st = s.value?.status;
+  if (!st) return false;
+  switch (action) {
+    case 'change':
+      return st === 'active';
+    case 'submitReview':
+      return st === 'draft' || st === 'changing';
+    case 'recallReview':
+      return st === 'reviewing';
+    case 'recallChange':
+      return st === 'changing';
+    case 'review':
+      return st === 'reviewing';
+    case 'close':
+      return st !== 'closed';
+    case 'activate':
+      return st === 'closed';
+    case 'assign':
+      return st !== 'closed';
+    case 'subdivide':
+      return st === 'active';
+    default:
+      return false;
   }
-  if (s.status === StoryStatus.Active) {
-    list.push({
-      key: 'change',
-      label: '变更',
-      permission: PERMS.story.change,
-      type: 'primary',
-      run: () => (changeOpen.value = true),
-    });
-    list.push({
-      key: 'close',
-      label: '关闭',
-      permission: PERMS.story.close,
-      run: () => (closeOpen.value = true),
-    });
-    list.push({
-      key: 'subdivide',
-      label: '拆分',
-      permission: PERMS.story.subdivide,
-      run: () => (subdivideOpen.value = true),
-    });
-  }
-  if (s.status === StoryStatus.Changing) {
-    list.push({
-      key: 'recall-change',
-      label: '撤回变更',
-      permission: PERMS.story.recallChange,
-      run: () =>
-        confirmAction({
-          title: '撤回变更',
-          message: 'v1 变更不可撤回；仅历史版本首版支持。确定尝试吗？',
-          run: () => storyApi.recallChange(s.id),
-          invalidate,
-        }),
-    });
-    list.push({
-      key: 'close',
-      label: '关闭',
-      permission: PERMS.story.close,
-      run: () => (closeOpen.value = true),
-    });
-  }
-  if (s.status === StoryStatus.Closed)
-    list.push({
-      key: 'activate',
-      label: '激活',
-      permission: PERMS.story.activate,
-      type: 'primary',
-      run: () =>
-        confirmAction({ title: '激活需求', run: () => storyApi.activate(s.id), invalidate }),
-    });
-  list.push({
-    key: 'assign',
-    label: '指派',
-    permission: PERMS.story.assign,
-    run: () => (assignOpen.value = true),
-  });
-  return list;
-});
+};
 
 // ---- 评审弹窗 ----
 const reviewOpen = ref(false);
@@ -178,26 +121,6 @@ const changeRules: FormRules = {
   verify: [{ required: true, message: '请填写验收标准', trigger: 'blur' }],
 };
 
-function openChange(): void {
-  const s = detail.data.value;
-  if (!s) return;
-  Object.assign(changeForm, {
-    title: s.spec.title,
-    spec: s.spec.spec,
-    verify: s.spec.verify,
-    pri: s.pri,
-    estimate: s.estimate,
-    submitReview: true,
-    reviewerIds: [],
-  });
-  changeOpen.value = true;
-}
-
-// 弹窗打开时回填当前版本内容
-watch(changeOpen, (v) => {
-  if (v) openChange();
-});
-
 async function submitChange(): Promise<void> {
   const valid = await changeFormRef.value?.validate().catch(() => false);
   if (!valid) return;
@@ -214,6 +137,20 @@ async function submitChange(): Promise<void> {
     ElMessage.error(describeError(error).message);
   }
 }
+
+watch(changeOpen, (v) => {
+  const d = detail.data.value;
+  if (!v || !d) return;
+  Object.assign(changeForm, {
+    title: d.spec.title,
+    spec: d.spec.spec,
+    verify: d.spec.verify,
+    pri: d.pri,
+    estimate: d.estimate,
+    submitReview: true,
+    reviewerIds: [],
+  });
+});
 
 // ---- 关闭弹窗 ----
 const closeOpen = ref(false);
@@ -305,56 +242,48 @@ async function submitSubdivide(): Promise<void> {
     ElMessage.error(describeError(error).message);
   }
 }
+
+const reviewLabels: Record<string, string> = {
+  pass: '通过',
+  revert: '驳回',
+  clarify: '澄清',
+  reject: '拒绝',
+};
 </script>
 
 <template>
-  <div v-if="detail.data.value" class="space-y-4">
-    <el-breadcrumb class="mb-1">
-      <el-breadcrumb-item :to="{ path: '/stories' }">需求</el-breadcrumb-item>
-      <el-breadcrumb-item>{{ '#' + detail.data.value.id }}</el-breadcrumb-item>
-    </el-breadcrumb>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div class="flex min-w-0 items-center gap-3">
-        <el-button link @click="router.push('/stories')"
-          ><el-icon><ArrowLeft /></el-icon
-        ></el-button>
-        <span class="num text-muted-foreground">#{{ detail.data.value.id }}</span>
-        <h1 class="truncate text-lg font-semibold">{{ detail.data.value.title }}</h1>
-        <StatusTag entity="story" :status="detail.data.value.status" />
-        <StatusTag entity="storyStage" :status="detail.data.value.stage" />
-        <span class="num text-xs text-muted-foreground">v{{ detail.data.value.version }}</span>
-      </div>
-      <ActionToolbar :actions="actions" />
+  <div v-if="s" class="pb-16">
+    <!-- 标题区（禅道 entityTitle：#ID 胶囊 + 标题 + 版本） -->
+    <div class="mb-3 flex items-center gap-3">
+      <el-button link @click="router.push('/stories')"
+        ><el-icon><ArrowLeft /></el-icon
+      ></el-button>
+      <span class="num rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground"
+        >#{{ s.id }}</span
+      >
+      <h1 class="truncate text-lg font-bold">{{ s.title }}</h1>
+      <span class="num rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground"
+        >v{{ s.version }}</span
+      >
     </div>
 
-    <el-alert
-      v-if="detail.data.value.status === StoryStatus.Changing"
-      type="warning"
-      :closable="false"
-      title="需求变更中"
-      description="变更已生成新版本；评审通过后任务/用例将按版本对齐（对齐 docs/02 变更版本化）。"
-    />
-
-    <div class="grid grid-cols-3 gap-4">
-      <div class="col-span-2 space-y-4">
-        <div class="border border-border bg-card">
-          <div class="border-b border-border px-4 py-2 text-sm font-medium">需求描述（spec）</div>
-          <div class="p-4">
-            <MarkdownView :content="detail.data.value.spec.spec || '（无）'" />
-          </div>
+    <div class="grid grid-cols-[minmax(0,1fr)_320px] gap-4">
+      <!-- 左主栏 -->
+      <div class="min-w-0 space-y-4">
+        <div class="ztn-card">
+          <div class="ztn-card-title">需求描述</div>
+          <div class="p-4"><MarkdownView :content="s.spec.spec || '暂无描述'" /></div>
         </div>
-        <div class="border border-border bg-card">
-          <div class="border-b border-border px-4 py-2 text-sm font-medium">验收标准（verify）</div>
-          <div class="p-4">
-            <MarkdownView :content="detail.data.value.spec.verify || '（无）'" />
-          </div>
+        <div class="ztn-card">
+          <div class="ztn-card-title">验收标准</div>
+          <div class="p-4"><MarkdownView :content="s.spec.verify || '暂无描述'" /></div>
         </div>
 
         <!-- 评审记录 -->
-        <div class="border border-border bg-card">
-          <div class="border-b border-border px-4 py-2 text-sm font-medium">评审记录</div>
+        <div class="ztn-card">
+          <div class="ztn-card-title">评审记录</div>
           <el-table
-            :data="detail.data.value.reviewers"
+            :data="s.reviewers"
             size="small"
             class="table-hairline"
             empty-text="暂无评审记录"
@@ -382,11 +311,7 @@ async function submitSubdivide(): Promise<void> {
                         : 'warning'
                   "
                 >
-                  {{
-                    { pass: '通过', revert: '驳回', clarify: '澄清', reject: '拒绝' }[
-                      row.result as string
-                    ] ?? row.result
-                  }}
+                  {{ reviewLabels[row.result as string] ?? row.result }}
                 </el-tag>
                 <span v-else class="text-muted-foreground">待评审</span>
               </template>
@@ -398,52 +323,176 @@ async function submitSubdivide(): Promise<void> {
             </el-table-column>
           </el-table>
         </div>
+
+        <!-- 历史记录（禅道：操作 + 字段变更行） -->
+        <ActionLogPanel object-type="story" :object-id="storyId" />
       </div>
 
-      <el-descriptions title="属性" :column="1" border size="small">
-        <el-descriptions-item label="产品">
-          <router-link
-            v-if="productName(detail.data.value.productId)"
-            :to="`/products/${detail.data.value.productId}`"
-            class="text-primary hover:underline"
-          >
-            {{ productName(detail.data.value.productId) }}
-          </router-link>
-          <span v-else class="num">{{ detail.data.value.productId }}</span>
-        </el-descriptions-item>
-        <el-descriptions-item label="模块"
-          ><span class="num">{{ detail.data.value.moduleId || '-' }}</span></el-descriptions-item
-        >
-        <el-descriptions-item label="优先级"
-          ><span class="num">P{{ detail.data.value.pri }}</span></el-descriptions-item
-        >
-        <el-descriptions-item label="预计工时"
-          ><span class="num">{{ detail.data.value.estimate }}</span></el-descriptions-item
-        >
-        <el-descriptions-item label="指派给"
-          ><span class="num">{{ detail.data.value.assignedTo || '-' }}</span></el-descriptions-item
-        >
-        <el-descriptions-item label="打开人"
-          ><span class="num">{{ detail.data.value.openedBy || '-' }}</span></el-descriptions-item
-        >
-        <el-descriptions-item label="打开时间"
-          ><span class="num">{{
-            fmtDateTime(detail.data.value.openedAt)
-          }}</span></el-descriptions-item
-        >
-        <el-descriptions-item v-if="detail.data.value.closedReason" label="关闭原因">
-          {{
-            closedReasonOptions.find((o) => o.value === detail.data.value?.closedReason)?.label ??
-            detail.data.value.closedReason
-          }}
-        </el-descriptions-item>
-      </el-descriptions>
+      <!-- 右侧栏 -->
+      <aside class="space-y-4">
+        <div class="ztn-card">
+          <div class="ztn-card-title">基本信息</div>
+          <el-descriptions :column="1" border size="small" class="p-3">
+            <el-descriptions-item label="所属产品">
+              <router-link
+                v-if="productName(s.productId)"
+                :to="`/products/${s.productId}`"
+                class="text-primary hover:underline"
+              >
+                {{ productName(s.productId) }}
+              </router-link>
+              <span v-else class="num">{{ s.productId }}</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="当前状态"
+              ><StatusDot entity="story" :status="s.status"
+            /></el-descriptions-item>
+            <el-descriptions-item label="所处阶段"
+              ><StatusDot entity="storyStage" :status="s.stage"
+            /></el-descriptions-item>
+            <el-descriptions-item label="优先级"
+              ><span class="num">P{{ s.pri }}</span></el-descriptions-item
+            >
+            <el-descriptions-item label="预计工时"
+              ><span class="num">{{ s.estimate }} 小时</span></el-descriptions-item
+            >
+            <el-descriptions-item label="关键词"
+              ><span class="num">{{ s.finalResult || '-' }}</span></el-descriptions-item
+            >
+          </el-descriptions>
+        </div>
+
+        <div class="ztn-card">
+          <div class="ztn-card-title">需求的一生</div>
+          <el-descriptions :column="1" border size="small" class="p-3">
+            <el-descriptions-item label="由谁创建">
+              <span class="num">{{ s.openedBy || '-' }}</span>
+              <span class="num ml-1 text-xs text-muted-foreground">{{
+                fmtDateTime(s.openedAt)
+              }}</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="指派给"
+              ><span class="num">{{ s.assignedTo || '-' }}</span></el-descriptions-item
+            >
+            <el-descriptions-item label="评审时间"
+              ><span class="num">{{ fmtDateTime(s.reviewedAt) }}</span></el-descriptions-item
+            >
+            <el-descriptions-item label="由谁关闭">
+              <span class="num">{{ s.closedBy || '-' }}</span>
+              <span class="num ml-1 text-xs text-muted-foreground">{{
+                fmtDateTime(s.closedAt)
+              }}</span>
+            </el-descriptions-item>
+            <el-descriptions-item v-if="s.closedReason" label="关闭原因">
+              {{
+                closedReasonOptions.find((o) => o.value === s?.closedReason)?.label ??
+                s?.closedReason
+              }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+      </aside>
     </div>
 
-    <ActionLogPanel object-type="story" :object-id="storyId" />
+    <!-- 底部悬浮动作栏（禅道 detail-actions） -->
+    <div class="detail-actions">
+      <el-button size="small" @click="router.push('/stories')">返回</el-button>
+      <span class="mx-2 h-4 w-px bg-border" />
+      <el-button
+        v-if="can('change')"
+        v-permission="PERMS.story.change"
+        type="primary"
+        size="small"
+        @click="changeOpen = true"
+        >变更</el-button
+      >
+      <el-button
+        v-if="can('recallChange')"
+        v-permission="PERMS.story.recallChange"
+        size="small"
+        @click="
+          confirmAction({
+            title: '撤销变更',
+            message: '确定尝试撤销变更吗？',
+            run: () => storyApi.recallChange(storyId),
+            invalidate,
+          })
+        "
+        >撤销变更</el-button
+      >
+      <el-button
+        v-if="can('submitReview')"
+        v-permission="PERMS.story.change"
+        size="small"
+        @click="changeOpen = true"
+        >提交评审</el-button
+      >
+      <el-button
+        v-if="can('recallReview')"
+        v-permission="PERMS.story.recallReview"
+        size="small"
+        @click="
+          confirmAction({
+            title: '撤销评审',
+            message: '确定撤回本次评审吗？',
+            run: () => storyApi.recallReview(storyId),
+            invalidate,
+          })
+        "
+        >撤销评审</el-button
+      >
+      <el-button
+        v-if="can('review')"
+        v-permission="PERMS.story.review"
+        type="primary"
+        size="small"
+        @click="reviewOpen = true"
+        >评审</el-button
+      >
+      <el-button
+        v-if="can('subdivide')"
+        v-permission="PERMS.story.subdivide"
+        size="small"
+        @click="subdivideOpen = true"
+        >拆分</el-button
+      >
+      <el-button
+        v-if="can('assign')"
+        v-permission="PERMS.story.assign"
+        size="small"
+        @click="assignOpen = true"
+        >指派</el-button
+      >
+      <el-button
+        v-if="can('close')"
+        v-permission="PERMS.story.close"
+        type="danger"
+        size="small"
+        @click="closeOpen = true"
+        >关闭</el-button
+      >
+      <el-button
+        v-if="can('activate')"
+        v-permission="PERMS.story.activate"
+        type="primary"
+        size="small"
+        @click="
+          confirmAction({ title: '激活需求', run: () => storyApi.activate(storyId), invalidate })
+        "
+        >激活</el-button
+      >
+      <span class="mx-2 h-4 w-px bg-border" />
+      <el-button
+        v-permission="PERMS.story.create"
+        size="small"
+        type="primary"
+        :icon="Plus"
+        @click="router.push('/stories')"
+        >提需求</el-button
+      >
+    </div>
 
     <!-- 评审弹窗 -->
-    <el-dialog v-model="reviewOpen" title="需求评审" width="520px">
+    <el-dialog v-model="reviewOpen" :title="`评审需求 #${s?.id}`" width="520px">
       <el-form ref="reviewFormRef" :model="reviewForm" :rules="reviewRules" label-width="90px">
         <el-form-item label="评审结果" prop="result">
           <el-radio-group v-model="reviewForm.result">
@@ -490,26 +539,24 @@ async function submitSubdivide(): Promise<void> {
     </el-dialog>
 
     <!-- 变更弹窗 -->
-    <el-dialog v-model="changeOpen" title="需求变更（生成新版本）" width="680px">
+    <el-dialog v-model="changeOpen" title="变更需求（生成新版本）" width="680px">
       <el-form ref="changeFormRef" :model="changeForm" :rules="changeRules" label-width="100px">
-        <el-form-item label="标题" prop="title">
-          <el-input v-model="changeForm.title" />
-        </el-form-item>
-        <el-form-item label="需求描述" prop="spec">
-          <el-input v-model="changeForm.spec" type="textarea" :rows="5" />
-        </el-form-item>
-        <el-form-item label="验收标准" prop="verify">
-          <el-input v-model="changeForm.verify" type="textarea" :rows="4" />
-        </el-form-item>
+        <el-form-item label="标题" prop="title"
+          ><el-input v-model="changeForm.title"
+        /></el-form-item>
+        <el-form-item label="需求描述" prop="spec"
+          ><el-input v-model="changeForm.spec" type="textarea" :rows="5"
+        /></el-form-item>
+        <el-form-item label="验收标准" prop="verify"
+          ><el-input v-model="changeForm.verify" type="textarea" :rows="4"
+        /></el-form-item>
         <el-form-item label="优先级">
           <el-radio-group v-model="changeForm.pri">
-            <el-radio :value="1">1</el-radio>
-            <el-radio :value="2">2</el-radio>
-            <el-radio :value="3">3</el-radio>
-            <el-radio :value="4">4</el-radio>
+            <el-radio :value="1">1</el-radio><el-radio :value="2">2</el-radio
+            ><el-radio :value="3">3</el-radio><el-radio :value="4">4</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="预计工时">
+        <el-form-item label="预计(小时)">
           <el-input-number
             v-model="changeForm.estimate"
             :min="0"
@@ -538,8 +585,10 @@ async function submitSubdivide(): Promise<void> {
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="changeOpen = false">取消</el-button>
-        <el-button type="primary" @click="submitChange">提交变更</el-button>
+        <el-button @click="changeOpen = false">返回</el-button>
+        <el-button v-permission="PERMS.story.change" type="primary" @click="submitChange"
+          >保存</el-button
+        >
       </template>
     </el-dialog>
 
@@ -619,9 +668,8 @@ async function submitSubdivide(): Promise<void> {
       <el-button
         size="small"
         @click="children.push({ title: '', spec: '', verify: '', estimate: undefined })"
+        >添加子需求</el-button
       >
-        添加子需求
-      </el-button>
       <template #footer>
         <el-button @click="subdivideOpen = false">取消</el-button>
         <el-button type="primary" @click="submitSubdivide">提交拆分</el-button>
@@ -630,3 +678,23 @@ async function submitSubdivide(): Promise<void> {
   </div>
   <el-empty v-else-if="!detail.isLoading.value" description="需求不存在" />
 </template>
+
+<style scoped>
+.detail-actions {
+  position: sticky;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 10px 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow:
+    0 1px 1px rgb(0 0 0 / 5%),
+    0 2px 6px rgb(0 0 0 / 4.5%);
+}
+</style>
