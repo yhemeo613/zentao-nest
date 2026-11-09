@@ -1,10 +1,11 @@
 # zentao-nest
 
 [![CI](https://github.com/yhemeo613/zentao-nest/actions/workflows/ci.yml/badge.svg)](https://github.com/yhemeo613/zentao-nest/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![tag](https://img.shields.io/badge/tag-backend--complete-5346a97-blue)
 ![tables](https://img.shields.io/badge/%E6%95%B0%E6%8D%AE%E5%BA%93-58%20%E8%A1%A8-green)
 ![api](https://img.shields.io/badge/API-229%20%E7%AB%AF%E7%82%B9-orange)
-![tests](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-130%20HTTP%20%2B%2062%20%E5%8D%95%E6%B5%8B-brightgreen)
+![tests](https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-130%20HTTP%20%2B%2062%20%E5%8D%95%E6%B5%8B%20%2B%207%20E2E-brightgreen)
 
 **禅道开源版（ZenTao 22.7）复刻** —— 依托 NestJS 模块化架构，完整还原禅道的 4 层管理框架与核心研发流程。前后端同仓 monorepo（pnpm workspaces + Turborepo），双端契约经 `packages/shared` 单源共享。
 
@@ -79,7 +80,7 @@ flowchart LR
     end
     subgraph Server["apps/server — NestJS 11"]
         GW["Socket.IO 网关 /ws<br/>看板实时协同"]
-        subgraph Modules["11 个业务模块"]
+        subgraph Modules["28 个业务模块"]
             SYS["system<br/>用户/角色/权限"]
             P4L["program / product<br/>project / execution"]
             CORE["story / plan / build<br/>release / task / bug<br/>case / testtask"]
@@ -234,7 +235,8 @@ E2E 断言逐点校验上述每个 stage 跃迁与全部状态字段，脚本见
 | 层 | 选型 |
 | --- | --- |
 | 后端 | NestJS 11 · TypeScript 6（ESM/strict）· TypeORM 1.x（migration 管线，生产禁 synchronize）· MySQL 8.4 · Redis 7 · Passport JWT · Socket.IO · Swagger |
-| 前端 | Vue 3.5 · Vite 6 · Tailwind CSS 4 · Pinia · @tanstack/vue-query · socket.io-client · axios（统一解包/401 刷新） |
+| 前端 | Vue 3.5 · Vite 6 · Tailwind CSS 4 · Element Plus · Pinia · @tanstack/vue-query · ECharts · md-editor-v3 · sortablejs · axios（统一解包/401 单飞刷新） |
+| E2E | Playwright（登录链/越权/冒烟 7 例） |
 | 工程化 | pnpm workspaces · Turborepo · Husky + commitlint + lint-staged · Vitest · GitHub Actions CI |
 | 部署 | Docker multi-stage 双镜像 · docker-compose 四容器（迁移先行门禁） |
 
@@ -268,7 +270,7 @@ pnpm dev                       # server :3000 / web :5173
 
 | 入口 | 地址 | 说明 |
 | --- | --- | --- |
-| 前端 | http://localhost:5173 | 登录后进「我的概览」 |
+| 前端 | http://localhost:5173 | 登录后进「我的地盘」 |
 | Swagger | http://localhost:3000/api/docs | 229 端点全注解（右上角 Authorize 填 accessToken） |
 | 健康检查 | http://localhost:3000/api/v1/health | DB/Redis 连通性 |
 
@@ -307,12 +309,15 @@ node apps/server/test/http/e2e-fullchain.mjs       # 全链路闭环 18 例
 node apps/server/test/http/p5-assert.mjs           # doc/oa/审计/通知 26 例
 node apps/server/test/http/p6-assert.mjs           # 看板/配置/统计/附件等 29 例
 
+# 前端 E2E（Playwright，需 web + server 运行中）
+pnpm --filter web test:e2e                         # 登录链/越权/冒烟 7 例
+
 # 契约与审计
 node apps/server/test/http/swagger-full-audit.mjs  # Swagger 229 端点结构 4 项
 node apps/server/scripts/permission-drift-check.mjs # 权限点漂移门禁（shared ↔ DB）
 ```
 
-CI（GitHub Actions）每次 push 自动执行：类型门禁 → 单测 → 构建 → **集成回归**（service 容器起 MySQL/Redis → 迁移先行 → 启动 → 漂移门禁 → 六脚本全量回归）。
+CI（GitHub Actions）双 job：**quality**（类型门禁 → 单测 → 构建）+ **integration**（service 容器起 MySQL/Redis → 迁移先行 → 启动 → 漂移门禁 → HTTP 断言全量回归）。
 
 > 验收明细（每阶段测试矩阵/缺陷记录）见 [docs/07-阶段测试与验收规范.md](docs/07-阶段测试与验收规范.md)；进度仪表盘见 [docs/08](docs/08-开发进度与交付状态.md)。
 
@@ -326,14 +331,15 @@ zentao-nest/
 │   ├── server/                  # NestJS 后端
 │   │   ├── src/
 │   │   │   ├── common/          # 守卫/拦截器/过滤器/Redis/Swagger 助手
-│   │   │   ├── modules/         # 15 个业务模块（每域 controller/service/entities/dto）
+│   │   │   ├── modules/         # 28 个业务模块（每域 controller/service/entities/dto）
 │   │   │   └── database/        # data-source + 迁移（58 表）
 │   │   ├── test/
 │   │   │   ├── unit/            # Vitest 单测（62 项）
 │   │   │   └── http/            # HTTP 断言脚本（130 项，可复现）
 │   │   └── Dockerfile
-│   └── web/                     # Vue3 前端
+│   └── web/                     # Vue3 前端（34 页面）
 │       ├── src/                 # api/ lib/ stores/ router/ views/ layouts/
+│       ├── e2e/                 # Playwright E2E（7 例）
 │       └── Dockerfile           # nginx 托管 + 反代
 ├── packages/
 │   └── shared/                  # ★ 双端同源契约包（零运行时依赖）
@@ -343,7 +349,7 @@ zentao-nest/
 │       ├── kanban-map.ts        # 状态↔看板列映射
 │       ├── error-codes.ts       # 错误码注册表 + HTTP 段位推导
 │       └── dto/http.ts          # 统一响应体/分页类型
-├── docs/                        # 设计文档体系（8 份，README 为导航）
+├── docs/                        # 设计文档体系（10 份 + 界面截图，README 为导航）
 ├── reference/zentaopms/         # 禅道源码参照（本地，gitignore）
 ├── docker-compose.yml           # 四容器编排
 └── .github/workflows/ci.yml     # CI 流水线
@@ -387,4 +393,8 @@ zentao-nest/
 
 ## License
 
-MIT（代码）；禅道业务方法论版权归青岛易软天创（本项目仅为学习性复刻，参照其开源版 GPL 源码的公开逻辑）。
+[MIT](LICENSE)（代码）；禅道业务方法论版权归青岛易软天创（本项目仅为学习性复刻，参照其开源版 GPL 源码的公开逻辑）。
+
+## 支持
+
+如果这个项目对你有帮助，欢迎点个 Star ⭐ / 提 Issue / 提 PR。
