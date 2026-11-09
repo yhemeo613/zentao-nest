@@ -41,12 +41,12 @@ export function useBoard(executionId: number) {
   );
 
   const topColumns = computed<KanbanColumnVo[]>(() =>
-    (board.value?.columns ?? []).filter((c) => c.parentId === 0),
+    (board.value?.columns ?? []).filter((c) => Number(c.parentId) === 0),
   );
   const lanes = computed<KanbanLaneVo[]>(() => board.value?.lanes ?? []);
 
   function childColumns(parentId: string): KanbanColumnVo[] {
-    return (board.value?.columns ?? []).filter((c) => String(c.parentId) === parentId);
+    return (board.value?.columns ?? []).filter((c) => String(c.parentId) === String(parentId));
   }
 
   function cellOf(laneId: string, columnId: string): KanbanCellVo | undefined {

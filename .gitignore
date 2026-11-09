@@ -37,3 +37,8 @@ reference/
 
 # misc
 *.local
+
+# 运行时产物
+apps/server/uploads/
+test-results/
+playwright-report/

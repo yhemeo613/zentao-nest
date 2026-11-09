@@ -75,7 +75,8 @@ async function handleSubmit(): Promise<void> {
               v-model="form.password"
               type="password"
               show-password
-              autocomplete="current-password"
+              autocomplete="new-password"
+              name="ztn-password"
               placeholder="密码"
               @keyup.enter="handleSubmit"
             />

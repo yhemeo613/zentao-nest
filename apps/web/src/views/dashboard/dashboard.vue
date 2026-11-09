@@ -131,9 +131,6 @@ function open(path: string): void {
         <div
           v-for="(stat, i) in stats"
           :key="stat.key"
-          v-motion
-          :initial="{ opacity: 0, y: 8 }"
-          :enter="{ opacity: 1, y: 0, transition: { delay: i * 50 } }"
           class="col-span-1 cursor-pointer p-4 text-center transition-colors hover:bg-accent/40"
           :class="i < stats.length - 1 ? 'border-r border-border' : ''"
           @click="open(stat.to)"

@@ -474,7 +474,7 @@ let b11detail =
 try {
   const { execSync } = await import('node:child_process');
   const tables = execSync(
-    'docker exec zentao-mysql mysql -uroot -pzentao_dev_2026 zentao_nest -e "SHOW TABLES LIKE \'zt_%\';"',
+    `docker exec zentao-mysql mysql -uroot -p${process.env.MYSQL_ROOT_PASSWORD ?? 'change_me_dev_only'} zentao_nest -e "SHOW TABLES LIKE 'zt_%';"`,
     { encoding: 'utf8', shell: 'C:\\Program Files\\Git\\bin\\bash.exe' },
   );
   const need = [
