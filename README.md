@@ -8,8 +8,8 @@
 
 **禅道开源版（ZenTao 22.7）复刻** —— 依托 NestJS 模块化架构，完整还原禅道的 4 层管理框架与核心研发流程。前后端同仓 monorepo（pnpm workspaces + Turborepo），双端契约经 `packages/shared` 单源共享。
 
-> **当前状态**：后端 8 阶段（P0-P7）全部验收通过并打标 [`backend-complete`](https://github.com/yhemeo613/zentao-nest/releases/tag/backend-complete)；前端完成骨架与登录链（F0/F1），F2-F3 页面交付中。
-> 累计自动化验证：**130 项 HTTP 断言 + 62 项单元测试 + 权限漂移门禁 + Swagger 全量审计**，全部留档可复现。
+> **当前状态**：后端 P0-P7 全部验收（`backend-complete`）；**前端 34 个页面全部交付**（Vue3.5 + Element Plus，界面按禅道 22.7 逐页复刻）。
+> 累计自动化验证：**130 项 HTTP 断言 + 62 项单元测试 + Playwright E2E 7 例 + 权限漂移门禁 + Swagger 全量审计**，全部留档可复现。
 
 ---
 
@@ -21,6 +21,7 @@
 - [四层管理框架](#四层管理框架)
 - [核心流程演示](#核心流程演示)
 - [技术栈](#技术栈)
+- [系统截图](#系统截图)
 - [快速开始](#快速开始)
 - [Docker 部署](#docker-部署)
 - [验证与测试](#验证与测试)
@@ -46,12 +47,35 @@
 
 ---
 
+## 系统截图
+
+| 我的地盘 | 需求列表 |
+| --- | --- |
+| ![我的地盘](docs/screenshots/dashboard.png) | ![需求列表](docs/screenshots/stories.png) |
+| **需求详情** | **看板** |
+| ![需求详情](docs/screenshots/story-detail.png) | ![看板](docs/screenshots/board.png) |
+| **统计中心** | **角色权限** |
+| ![统计中心](docs/screenshots/reports.png) | ![角色权限](docs/screenshots/roles.png) |
+
+<details>
+<summary>更多截图</summary>
+
+| 登录 | 任务列表 |
+| --- | --- |
+| ![登录](docs/screenshots/login.png) | ![任务列表](docs/screenshots/tasks.png) |
+| **Bug 列表** | **文档中心** |
+| ![Bug 列表](docs/screenshots/bugs.png) | ![文档中心](docs/screenshots/doc.png) |
+
+</details>
+
+---
+
 ## 系统架构
 
 ```mermaid
 flowchart LR
     subgraph Client["浏览器 SPA"]
-        WEB["apps/web<br/>Vue 3.5 + Vite + Tailwind<br/>shadcn-vue + Pinia + vue-query"]
+        WEB["apps/web<br/>Vue 3.5 + Vite + Element Plus<br/>Pinia + vue-query"]
     end
     subgraph Server["apps/server — NestJS 11"]
         GW["Socket.IO 网关 /ws<br/>看板实时协同"]
@@ -339,6 +363,7 @@ zentao-nest/
 | [07-阶段测试与验收](docs/07-阶段测试与验收规范.md) | 各阶段测试矩阵与缺陷记录 |
 | [08-开发进度与交付状态](docs/08-开发进度与交付状态.md) | 进度仪表盘（随里程碑同步） |
 | [09-差距分析与演进路线](docs/09-差距分析与演进路线.md) | 对标禅道 102 模块的缺口全景与三阶段路线 |
+| [10-前端布局与组件规范](docs/10-前端布局与组件规范.md) | 禅道复刻决策史/主题色值/页面范式/组件清单 |
 
 ---
 
@@ -353,10 +378,12 @@ zentao-nest/
 ## 路线图
 
 - [x] **P0-P7 后端全量**（tag [`backend-complete`](https://github.com/yhemeo613/zentao-nest/releases/tag/backend-complete)）
-- [x] F0/F1 前端骨架与登录链
-- [ ] F2-F3 前端集中交付（四层框架页面 + 8 大实体页面，含看板 Socket）
+- [x] **F0-F7 前端全量交付**（34 页：四层框架/需求/任务/Bug/用例/测试单/看板/文档/待办/工时/统计/系统管理）
+- [x] 禅道 UI 1:1 复刻·一期（壳/地盘/需求·任务·Bug 列表/需求详情，docs/10）
+- [ ] F8 地盘 100% 复刻（依赖后端聚合端点，规格 docs/10 §8）
+- [ ] 其余列表/详情页逐页 1:1 对齐（docs/08 §4）
 - [ ] P7 遗留：性能 P95 实测 / Prometheus 监控 / 镜像 registry 构建
-- [ ] 登记简化项随前端需要补齐（多人任务 linear/multi、Excel 导入导出、通知多收件人等）
+- [ ] 登记简化项随需要补齐（多人任务、Excel 导入导出、自定义查询器、邮件通道等，docs/09）
 
 ## License
 
