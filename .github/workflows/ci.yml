@@ -71,14 +71,19 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      - name: 构建 shared（@zentao/shared 仅从 dist 解析，migration/server/漂移门禁均依赖）
+        run: pnpm --filter @zentao/shared build
+
       - name: 迁移先行（docs/01 §13 纪律）
         run: pnpm --filter @zentao/server exec tsx node_modules/typeorm/cli.js migration:run -d src/database/data-source.ts
 
-      - name: 启动服务（后台）
+      - name: 启动服务（后台；启动失败回传日志便于定位）
         run: |
           cd apps/server
           nohup node --experimental-strip-types --disable-warning=ExperimentalWarning src/main.ts > server.log 2>&1 &
-          for i in $(seq 1 30); do curl -sf http://localhost:3000/api/v1/health && break; sleep 2; done
+          ok=""
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/api/v1/health && ok=1 && break; sleep 2; done
+          if [ -z "$ok" ]; then cat server.log; exit 1; fi
 
       - name: 权限点漂移门禁（docs/03 §3.1）
         run: node apps/server/scripts/permission-drift-check.mjs
