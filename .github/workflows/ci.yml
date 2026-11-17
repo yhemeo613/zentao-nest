@@ -77,10 +77,11 @@ jobs:
       - name: 迁移先行（docs/01 §13 纪律）
         run: pnpm --filter @zentao/server exec tsx node_modules/typeorm/cli.js migration:run -d src/database/data-source.ts
 
-      - name: 启动服务（后台；启动失败回传日志便于定位）
+      - name: 启动服务（后台；nest 构建产物启动，失败回传日志便于定位）
         run: |
+          pnpm --filter @zentao/server build
           cd apps/server
-          nohup node --experimental-strip-types --disable-warning=ExperimentalWarning src/main.ts > server.log 2>&1 &
+          nohup node dist/main.js > server.log 2>&1 &
           ok=""
           for i in $(seq 1 60); do curl -sf http://localhost:3000/api/v1/health && ok=1 && break; sleep 2; done
           if [ -z "$ok" ]; then cat server.log; exit 1; fi
