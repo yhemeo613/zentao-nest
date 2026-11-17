@@ -13,13 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+
+      - name: 构建 shared（类型契约单源先行，供 ts-check/web build 解析 @zentao/shared）
+        run: pnpm --filter @zentao/shared build
 
       - name: 类型门禁（server + web）
         run: |
@@ -64,8 +65,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 22
