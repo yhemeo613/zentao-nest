@@ -38,7 +38,20 @@ assert(
   loginAdmin.message,
 );
 
-// tester01 无四层权限（P1 建的 qa 账号）→ 用于 B10 权限拒绝
+// tester01 无四层权限 → 用于 B10 权限拒绝。
+// 自举：干净库无此账号（历史上为 P1 手工造数、从未入种子），admin 创建不带角色绑定的 qa 账号；
+// 幂等——账号已存在时服务端返回 3004，直接复用既有账号登录。
+await api(
+  'POST',
+  '/users',
+  {
+    account: 'tester01',
+    password: 'Test@123456',
+    realname: '测试一号',
+    role: 'qa',
+  },
+  admin,
+);
 const loginTester = await api('POST', '/auth/login', {
   account: 'tester01',
   password: 'Test@123456',
